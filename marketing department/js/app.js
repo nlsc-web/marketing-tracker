@@ -56,11 +56,11 @@ function applyRoleUI(){
 
   if(formCard) formCard.style.display = viewer ? 'none' : '';
   if(tabEntry) tabEntry.textContent = viewer ? 'Team Details' : 'Daily Entry';
-  if(title) title.textContent = viewer ? 'Team Full Details' : 'Coordinator Entries';
+  if(title) title.textContent = viewer ? 'Team Full Details' : 'My Entries';
   if(desc){
     desc.textContent = viewer
       ? 'Full details for Dinithi, Tharusha, Ruchira, Nirmala, and Sumudu.'
-      : 'All coordinators’ saved entries — stays after refresh.';
+      : 'Your saved entries — stays after refresh.';
   }
   if(headerSub){
     headerSub.textContent = viewer
@@ -203,6 +203,7 @@ async function deleteEntry(id){
 
 function editEntry(e){
   if(isViewer()) return;
+  if(e.coordinator && e.coordinator !== currentUser) return;
   editingId = e.id;
   editingCoordinator = e.coordinator || currentUser;
   document.getElementById('editBadge').style.display = 'inline-block';
@@ -243,26 +244,29 @@ async function loadRecent(){
   const box = document.getElementById('recentList');
   box.innerHTML = '<div class="empty">Loading...</div>';
   const all = await getAllEntries();
-  const entries = staffEntriesOnly(all);
+  const staff = staffEntriesOnly(all);
   const viewer = isViewer();
+  /* Staff see only their own rows; viewers see all 5 coordinators */
+  const entries = viewer
+    ? staff
+    : staff.filter(e => e.coordinator === currentUser);
 
   if(entries.length===0){
     box.innerHTML = `<div class="empty">${viewer ? 'No team entries yet.' : 'No entries yet. Add today\'s numbers above.'}</div>`;
     return;
   }
 
-  const byCoord = {};
-  ENTRY_COORDS.forEach(name => { byCoord[name] = []; });
-  entries.forEach(e=>{
-    const name = e.coordinator || 'Unknown';
-    if(!byCoord[name]) byCoord[name] = [];
-    byCoord[name].push(e);
-  });
+  const names = viewer
+    ? ENTRY_COORDS.filter(name => entries.some(e => e.coordinator === name))
+    : [currentUser];
 
-  const names = ENTRY_COORDS.filter(name => (byCoord[name]||[]).length > 0);
   let html = '';
   names.forEach(name=>{
-    const rows = byCoord[name].slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const rows = entries
+      .filter(e => e.coordinator === name)
+      .slice()
+      .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    if(rows.length === 0) return;
     html += `<div class="coord-block">
       <p class="coord-block-name">${name}</p>
       <div class="table-scroll">
@@ -295,7 +299,7 @@ async function loadRecent(){
     html += `</table></div></div>`;
   });
 
-  box.innerHTML = html;
+  box.innerHTML = html || `<div class="empty">${viewer ? 'No team entries yet.' : 'No entries yet. Add today\'s numbers above.'}</div>`;
   if(!viewer){
     box.querySelectorAll('[data-edit]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
