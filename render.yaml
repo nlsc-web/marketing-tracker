@@ -9,5 +9,7 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 22.18.0
-      - key: DATA_DIR
-        value: /opt/render/project/src/data
+      # Lifetime data: set this in Render Dashboard to a Neon/Supabase Postgres URL.
+      # Without DATABASE_URL, Render uses temporary SQLite (data can reset on redeploy).
+      - key: DATABASE_URL
+        sync: false
