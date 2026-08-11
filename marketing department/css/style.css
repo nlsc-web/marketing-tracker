@@ -403,6 +403,26 @@ button.linklike{
 .filters-card #refreshBtn{
   margin-left:auto;
 }
+.filter-btns{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.filter-view{
+  display:inline-flex;
+  align-items:center;
+  font-family:inherit;
+  font-size:1rem;
+  font-weight:500;
+  padding:10px 12px;
+  border-radius:9px;
+  min-height:44px;
+  border:1px solid var(--border-strong);
+  background:#fff;
+  color:var(--text);
+  user-select:none;
+  pointer-events:none;
+}
 .filter-to{
   font-size:0.8125rem;
   font-weight:600;
@@ -421,9 +441,22 @@ button.linklike{
 
 .metrics{
   display:grid;
-  grid-template-columns:minmax(160px, 260px);
+  grid-template-columns:repeat(2, minmax(160px, 260px));
   gap:12px;
   margin-bottom:16px;
+}
+.entries-summary{
+  grid-template-columns:repeat(2, minmax(140px, 1fr));
+  margin-top:4px;
+  margin-bottom:18px;
+}
+.entries-chart-block{
+  margin-bottom:20px;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
+.entries-chart-block .chart-with-counts{
+  margin-top:8px;
 }
 .metric{
   background:var(--card);
@@ -658,13 +691,14 @@ canvas{max-width:100%;}
 @media(min-width:901px){
   .wrap{padding-top:36px;}
   .card{padding:24px;}
-  .metrics{grid-template-columns:minmax(200px, 300px);}
+  .metrics{grid-template-columns:repeat(2, minmax(200px, 300px));}
+  .entries-summary{grid-template-columns:repeat(4, minmax(140px, 1fr));}
   .chart-with-counts{grid-template-columns:1.15fr 0.85fr; gap:28px;}
   .chart-with-counts .chart-wrap{height:280px;}
 }
 
 @media(min-width:600px) and (max-width:900px){
-  .metrics{grid-template-columns:minmax(180px, 280px);}
+  .metrics{grid-template-columns:repeat(2, minmax(180px, 280px));}
   .chart-with-counts{grid-template-columns:1fr 1fr;}
 }
 
@@ -727,7 +761,8 @@ canvas{max-width:100%;}
     width:100%;
     margin-left:0;
   }
-  .metrics{grid-template-columns:1fr; max-width:100%;}
+  .metrics{grid-template-columns:1fr 1fr; max-width:100%;}
+  .entries-summary{grid-template-columns:1fr 1fr;}
   .metric{padding:14px 16px;}
   .desktop-only{display:none !important;}
   .mobile-only{display:block !important;}

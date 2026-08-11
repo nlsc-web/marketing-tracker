@@ -95,6 +95,7 @@
             <option>Form 39</option>
             <option>Form 12</option>
             <option>Form 13</option>
+            <option>Form 15</option>
             <option>Form 6</option>
             <option>Form 3</option>
           </select>
@@ -136,8 +137,10 @@
 
   <div class="panel" id="panel-dashboard">
     <div class="filters card filters-card">
-      <select id="filterCoord"><option value="">All Coordinators</option></select>
-      <select id="filterDept"><option value="">All NLSC / COMPANY</option></select>
+      <div class="filter-btns">
+        <span class="filter-view">All Coordinators</span>
+        <span class="filter-view">All NLSC / COMPANY</span>
+      </div>
       <input type="date" id="filterFrom" title="From date">
       <span class="filter-to">To</span>
       <input type="date" id="filterTo" title="To date">
@@ -146,6 +149,7 @@
 
     <div class="metrics">
       <div class="metric"><div class="lbl">Total Leads</div><div class="val" id="m_leads">0</div></div>
+      <div class="metric"><div class="lbl">Total Pickup</div><div class="val" id="m_pickup">0</div></div>
     </div>
 
     <div class="card">
@@ -167,6 +171,13 @@
       <div class="chart-with-counts">
         <div class="chart-wrap"><canvas id="chartCoord"></canvas></div>
         <div class="chart-counts" id="countsCoord"></div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="section-title">NLSC / COMPANY Summary</p>
+      <div class="chart-with-counts">
+        <div class="chart-wrap"><canvas id="chartDept"></canvas></div>
+        <div class="chart-counts" id="countsDept"></div>
       </div>
     </div>
   </div>

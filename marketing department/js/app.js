@@ -21,6 +21,7 @@ const DEPTS = [
   'Form 39',
   'Form 12',
   'Form 13',
+  'Form 15',
   'Form 6',
   'Form 3'
 ];
@@ -28,6 +29,26 @@ const DEPTS = [
 let currentUser = sessionStorage.getItem('mdt_user') || '';
 let editingId = null;
 let editingCoordinator = '';
+let callMetricsChart, resultsChart, coordChart, deptChart;
+let personCharts = {};
+
+const pieColors = [
+  '#a8881a',
+  '#c9a227',
+  '#f0d56b',
+  '#6b6b6b',
+  '#8a7018',
+  '#d9d2c0',
+  '#3d3d3d',
+  '#b8921f'
+];
+const coordPieColors = [
+  '#7c3aed', /* Dinithi — purple */
+  '#dc2626', /* Tharusha — red */
+  '#16a34a', /* Ruchira — green */
+  '#e11d8f', /* Nirmala — rose */
+  '#1e3a8a'  /* Sumudu — navy blue */
+];
 
 function isViewer(){
   return VIEW_ONLY.includes(currentUser);
@@ -43,8 +64,6 @@ function fillSelect(id, arr){
 }
 fillSelect('loginCoord', COORDS);
 fillSelect('coord', ENTRY_COORDS);
-fillSelect('filterCoord', ENTRY_COORDS);
-fillSelect('filterDept', DEPTS);
 
 function applyRoleUI(){
   const viewer = isViewer();
@@ -240,98 +259,30 @@ function staffEntriesOnly(entries){
   return entries.filter(e => ENTRY_COORDS.includes(e.coordinator));
 }
 
-async function loadRecent(){
-  const box = document.getElementById('recentList');
-  box.innerHTML = '<div class="empty">Loading...</div>';
-  const all = await getAllEntries();
-  const staff = staffEntriesOnly(all);
-  const viewer = isViewer();
-  /* Staff see only their own rows; viewers see all 5 coordinators */
-  const entries = viewer
-    ? staff
-    : staff.filter(e => e.coordinator === currentUser);
-
-  if(entries.length===0){
-    box.innerHTML = `<div class="empty">${viewer ? 'No team entries yet.' : 'No entries yet. Add today\'s numbers above.'}</div>`;
-    return;
-  }
-
-  const names = viewer
-    ? ENTRY_COORDS.filter(name => entries.some(e => e.coordinator === name))
-    : [currentUser];
-
-  let html = '';
-  names.forEach(name=>{
-    const rows = entries
-      .filter(e => e.coordinator === name)
-      .slice()
-      .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    if(rows.length === 0) return;
-    html += `<div class="coord-block">
-      <p class="coord-block-name">${name}</p>
-      <div class="table-scroll">
-      <table>
-        <tr>
-          <th>Date</th><th>NLSC / COMPANY</th><th>Leads</th><th>Pickup</th>
-          <th>Answer</th><th>N/A</th><th>Payments</th><th>Sure</th><th>Follow up</th><th>Rejected</th>
-          ${viewer ? '' : '<th></th>'}
-        </tr>`;
-    rows.forEach(e=>{
-      html += `<tr>
-        <td>${e.date||''}</td>
-        <td>${e.department||''}</td>
-        <td>${e.leads||0}</td>
-        <td>${e.pickup||0}</td>
-        <td>${e.answer||0}</td>
-        <td>${e.na||0}</td>
-        <td>${e.payments||0}</td>
-        <td>${e.sure||0}</td>
-        <td>${e.followup||0}</td>
-        <td>${e.rejected||0}</td>
-        ${viewer ? '' : `<td>
-          <div class="row-actions">
-            <button type="button" class="btn-edit" data-edit="${e.id}">Edit</button>
-            <button type="button" class="btn-delete" data-del="${e.id}">Delete</button>
-          </div>
-        </td>`}
-      </tr>`;
-    });
-    html += `</table></div></div>`;
+function destroyPersonCharts(){
+  Object.keys(personCharts).forEach(key=>{
+    try{ personCharts[key].destroy(); }catch(e){}
   });
-
-  box.innerHTML = html || `<div class="empty">${viewer ? 'No team entries yet.' : 'No entries yet. Add today\'s numbers above.'}</div>`;
-  if(!viewer){
-    box.querySelectorAll('[data-edit]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const found = entries.find(x=>x.id===btn.dataset.edit);
-        if(found) editEntry(found);
-      });
-    });
-    box.querySelectorAll('[data-del]').forEach(btn=>{
-      btn.addEventListener('click', ()=> deleteEntry(btn.dataset.del));
-    });
-  }
+  personCharts = {};
 }
 
-let callMetricsChart, resultsChart, coordChart;
-/* Black / white / gold — high contrast, easy to tell apart */
-const pieColors = [
-  '#a8881a', /* deep gold — was black */
-  '#c9a227',
-  '#f0d56b',
-  '#6b6b6b',
-  '#8a7018',
-  '#d9d2c0',
-  '#3d3d3d',
-  '#b8921f'
-];
-const coordPieColors = [
-  '#7c3aed', /* Dinithi — purple */
-  '#dc2626', /* Tharusha — red */
-  '#16a34a', /* Ruchira — green */
-  '#e11d8f', /* Nirmala — rose */
-  '#1e3a8a'  /* Sumudu — navy blue */
-];
+function sumPersonRows(rows){
+  let totLeads=0, totPickup=0, totPayments=0, totSure=0;
+  const byDept = {};
+  rows.forEach(e=>{
+    totLeads += e.leads||0;
+    totPickup += e.pickup||0;
+    totPayments += e.payments||0;
+    totSure += e.sure||0;
+    const dept = e.department || 'Other';
+    byDept[dept] = (byDept[dept]||0) + (e.leads||0);
+  });
+  return { totLeads, totPickup, totPayments, totSure, byDept };
+}
+
+function safeChartId(name){
+  return String(name).replace(/[^a-zA-Z0-9]/g, '_');
+}
 
 function renderCounts(containerId, labels, values, colors){
   const box = document.getElementById(containerId);
@@ -384,22 +335,127 @@ function buildPie(existing, canvasId, labels, values, colors){
   });
 }
 
+async function loadRecent(){
+  const box = document.getElementById('recentList');
+  box.innerHTML = '<div class="empty">Loading...</div>';
+  destroyPersonCharts();
+
+  const all = await getAllEntries();
+  const staff = staffEntriesOnly(all);
+  const viewer = isViewer();
+  const entries = viewer
+    ? staff
+    : staff.filter(e => e.coordinator === currentUser);
+
+  if(entries.length===0){
+    box.innerHTML = `<div class="empty">${viewer ? 'No team entries yet.' : 'No entries yet. Add today\'s numbers above.'}</div>`;
+    return;
+  }
+
+  const names = viewer
+    ? ENTRY_COORDS.filter(name => entries.some(e => e.coordinator === name))
+    : [currentUser];
+
+  const chartMetas = [];
+  let html = '';
+
+  names.forEach(name=>{
+    const rows = entries
+      .filter(e => e.coordinator === name)
+      .slice()
+      .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    if(rows.length === 0) return;
+
+    const { totLeads, totPickup, totPayments, totSure, byDept } = sumPersonRows(rows);
+    const cid = safeChartId(name);
+    const labels = Object.keys(byDept);
+    const values = labels.map(k => byDept[k]);
+    chartMetas.push({ cid, labels, values });
+
+    html += `<div class="coord-block">
+      <p class="coord-block-name">${name}</p>
+      <div class="metrics entries-summary">
+        <div class="metric"><div class="lbl">Total Leads</div><div class="val">${totLeads.toLocaleString()}</div></div>
+        <div class="metric"><div class="lbl">Total Pickup</div><div class="val">${totPickup.toLocaleString()}</div></div>
+        <div class="metric"><div class="lbl">Payments</div><div class="val">${totPayments.toLocaleString()}</div></div>
+        <div class="metric"><div class="lbl">Sure Count</div><div class="val">${totSure.toLocaleString()}</div></div>
+      </div>
+      <div class="entries-chart-block">
+        <p class="group-label">Leads by NLSC / COMPANY</p>
+        <div class="chart-with-counts">
+          <div class="chart-wrap"><canvas id="chartPerson_${cid}"></canvas></div>
+          <div class="chart-counts" id="countsPerson_${cid}"></div>
+        </div>
+      </div>
+      <div class="table-scroll">
+      <table>
+        <tr>
+          <th>Date</th><th>NLSC / COMPANY</th><th>Leads</th><th>Pickup</th>
+          <th>Answer</th><th>N/A</th><th>Payments</th><th>Sure</th><th>Follow up</th><th>Rejected</th>
+          ${viewer ? '' : '<th></th>'}
+        </tr>`;
+    rows.forEach(e=>{
+      html += `<tr>
+        <td>${e.date||''}</td>
+        <td>${e.department||''}</td>
+        <td>${e.leads||0}</td>
+        <td>${e.pickup||0}</td>
+        <td>${e.answer||0}</td>
+        <td>${e.na||0}</td>
+        <td>${e.payments||0}</td>
+        <td>${e.sure||0}</td>
+        <td>${e.followup||0}</td>
+        <td>${e.rejected||0}</td>
+        ${viewer ? '' : `<td>
+          <div class="row-actions">
+            <button type="button" class="btn-edit" data-edit="${e.id}">Edit</button>
+            <button type="button" class="btn-delete" data-del="${e.id}">Delete</button>
+          </div>
+        </td>`}
+      </tr>`;
+    });
+    html += `</table></div></div>`;
+  });
+
+  box.innerHTML = html || `<div class="empty">${viewer ? 'No team entries yet.' : 'No entries yet. Add today\'s numbers above.'}</div>`;
+
+  chartMetas.forEach(meta=>{
+    if(!document.getElementById('chartPerson_'+meta.cid)) return;
+    renderCounts(
+      'countsPerson_'+meta.cid,
+      meta.labels.length ? meta.labels : ['No data'],
+      meta.labels.length ? meta.values : [0],
+      pieColors
+    );
+    personCharts[meta.cid] = buildPie(null, 'chartPerson_'+meta.cid, meta.labels, meta.values, pieColors);
+  });
+
+  if(!viewer){
+    box.querySelectorAll('[data-edit]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const found = entries.find(x=>x.id===btn.dataset.edit);
+        if(found) editEntry(found);
+      });
+    });
+    box.querySelectorAll('[data-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=> deleteEntry(btn.dataset.del));
+    });
+  }
+}
+
 async function loadDashboard(){
   const all = await getAllEntries();
   const entries = staffEntriesOnly(all);
-  const fc = document.getElementById('filterCoord').value;
-  const fd = document.getElementById('filterDept').value;
   const ff = document.getElementById('filterFrom').value;
   const ft = document.getElementById('filterTo').value;
   const filtered = entries.filter(e =>
-    (!fc || e.coordinator===fc) &&
-    (!fd || e.department===fd) &&
     (!ff || (e.date||'') >= ff) &&
     (!ft || (e.date||'') <= ft)
   );
 
   let totLeads=0, totPickup=0, totAnswer=0, totNa=0, totPayments=0, totSure=0, totFollowup=0, totRejected=0;
   const byCoord = {};
+  const byDept = {};
   filtered.forEach(e=>{
     totLeads += e.leads||0;
     totPickup += e.pickup||0;
@@ -427,14 +483,19 @@ async function loadDashboard(){
     c.sure += e.sure||0;
     c.followup += e.followup||0;
     c.rejected += e.rejected||0;
+
+    const dept = e.department || 'Other';
+    byDept[dept] = (byDept[dept]||0) + (e.leads||0);
   });
 
   document.getElementById('m_leads').textContent = totLeads.toLocaleString();
+  document.getElementById('m_pickup').textContent = totPickup.toLocaleString();
 
   const callLabels = ['Leads','Pickup Calls','Answer Calls','N/A Calls'];
   const callValues = [totLeads, totPickup, totAnswer, totNa];
   const resultLabels = ['Payments Received','Sure Count','Follow up','Rejected Calls'];
   const resultValues = [totPayments, totSure, totFollowup, totRejected];
+
   const coordRows = ENTRY_COORDS
     .map(name => byCoord[name])
     .filter(Boolean);
@@ -445,6 +506,9 @@ async function loadDashboard(){
     return coordPieColors[(idx >= 0 ? idx : 0) % coordPieColors.length];
   });
 
+  const deptLabels = Object.keys(byDept);
+  const deptValues = deptLabels.map(k => byDept[k]);
+
   renderCounts('countsCallMetrics', callLabels, callValues, pieColors);
   renderCounts('countsResults', resultLabels, resultValues, pieColors);
   renderCounts(
@@ -453,14 +517,19 @@ async function loadDashboard(){
     coordLabels.length ? coordValues : [0],
     coordLabels.length ? coordColors : coordPieColors
   );
+  renderCounts(
+    'countsDept',
+    deptLabels.length ? deptLabels : ['No data'],
+    deptLabels.length ? deptValues : [0],
+    pieColors
+  );
 
   callMetricsChart = buildPie(callMetricsChart, 'chartCallMetrics', callLabels, callValues, pieColors);
   resultsChart = buildPie(resultsChart, 'chartResults', resultLabels, resultValues, pieColors);
   coordChart = buildPie(coordChart, 'chartCoord', coordLabels, coordValues, coordLabels.length ? coordColors : coordPieColors);
+  deptChart = buildPie(deptChart, 'chartDept', deptLabels, deptValues, pieColors);
 }
 
 document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
-document.getElementById('filterCoord').addEventListener('change', loadDashboard);
-document.getElementById('filterDept').addEventListener('change', loadDashboard);
 document.getElementById('filterFrom').addEventListener('change', loadDashboard);
 document.getElementById('filterTo').addEventListener('change', loadDashboard);
