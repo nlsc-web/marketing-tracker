@@ -1,0 +1,7 @@
+node_modules/
+data/entries.json
+data/tracker.db
+data/tracker.db-*
+.DS_Store
+.env
+.env.*

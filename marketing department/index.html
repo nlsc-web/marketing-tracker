@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MD Tracker">
+<title>Daily Tracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-shell">
+    <div class="login-brand">
+      <div class="brand-mark" aria-hidden="true">MD</div>
+      <h1>Marketing Department</h1>
+      <p class="sub">Daily Numbers Tracker for the Team</p>
+    </div>
+    <div class="card login-card">
+      <p class="card-heading">Sign In</p>
+      <p class="card-desc">Select Your Name and Enter Your PIN to Continue.</p>
+      <div class="field">
+        <label for="loginCoord">Coordinator</label>
+        <select id="loginCoord"></select>
+      </div>
+      <div class="field">
+        <label for="loginPin">PIN</label>
+        <input type="password" id="loginPin" inputmode="numeric" maxlength="4" placeholder="4-digit PIN" autocomplete="current-password">
+      </div>
+      <button class="primary" id="loginBtn">Log In</button>
+      <div class="msg err" id="loginMsg" style="display:none;">Wrong PIN. Try again.</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none;">
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-row">
+        <div class="brand-mark sm" aria-hidden="true">MD</div>
+        <div>
+          <h1>Marketing Department</h1>
+          <p class="sub">Log Daily Numbers — The Dashboard Updates for Everyone.</p>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <span class="user-avatar" id="userAvatar" aria-hidden="true"></span>
+        <span class="whoami">Logged in as <b id="whoamiName"></b></span>
+      </div>
+      <button class="ghost" id="logoutBtn">Log Out</button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Main">
+    <div class="tab active" data-tab="entry" role="tab" aria-selected="true">Daily Entry</div>
+    <div class="tab" data-tab="dashboard" role="tab" aria-selected="false">Dashboard</div>
+  </nav>
+
+  <div class="panel active" id="panel-entry">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <p class="card-heading">Today’s Entry</p>
+          <p class="card-desc">Enter leads, calls, and payments for the selected date.</p>
+        </div>
+        <span class="edit-badge" id="editBadge" style="display:none;">Editing an existing entry</span>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="coord">Coordinator</label>
+          <select id="coord" disabled></select>
+        </div>
+        <div class="field">
+          <label for="dept">NLSC / COMPANY</label>
+          <select id="dept">
+            <option>Accounts Theory</option>
+            <option>Accounts Practical</option>
+            <option>Accounts Course</option>
+            <option>Tax 1day Workshop</option>
+            <option>HR 5days Workshop</option>
+            <option>Company Registration</option>
+            <option>Form 39</option>
+            <option>Form 12</option>
+            <option>Form 13</option>
+            <option>Form 6</option>
+            <option>Form 3</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="entryDate">Date</label>
+        <input type="date" id="entryDate">
+      </div>
+      <div class="metric-inputs">
+        <p class="group-label">Call metrics</p>
+        <div class="grid2">
+          <div class="field"><label for="f_leads">Leads</label><input type="number" id="f_leads" min="0" value="0"></div>
+          <div class="field"><label for="f_pickup">Pickup Calls</label><input type="number" id="f_pickup" min="0" value="0"></div>
+          <div class="field"><label for="f_answer">Answer Calls</label><input type="number" id="f_answer" min="0" value="0"></div>
+          <div class="field"><label for="f_na">N/A Calls</label><input type="number" id="f_na" min="0" value="0"></div>
+        </div>
+        <p class="group-label">Results</p>
+        <div class="grid2">
+          <div class="field"><label for="f_payments">Payments Received</label><input type="number" id="f_payments" min="0" value="0"></div>
+          <div class="field"><label for="f_sure">Sure Count</label><input type="number" id="f_sure" min="0" value="0"></div>
+          <div class="field"><label for="f_followup">Follow up</label><input type="number" id="f_followup" min="0" value="0"></div>
+          <div class="field"><label for="f_rejected">Rejected Calls</label><input type="number" id="f_rejected" min="0" value="0"></div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="primary" id="submitBtn">Save Entry</button>
+        <button class="ghost" id="cancelEditBtn" style="display:none;">Cancel edit</button>
+      </div>
+      <div class="msg ok" id="saveMsg">Entry Saved.</div>
+    </div>
+
+    <div class="card">
+      <p class="section-title">Coordinator Entries</p>
+      <p class="card-desc" style="margin-top:-4px;margin-bottom:12px;">All coordinators’ saved entries — stays after refresh.</p>
+      <div id="recentList"><div class="empty">Loading...</div></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-dashboard">
+    <div class="filters card filters-card">
+      <select id="filterCoord"><option value="">All Coordinators</option></select>
+      <select id="filterDept"><option value="">All NLSC / COMPANY</option></select>
+      <input type="date" id="filterFrom" title="From date">
+      <input type="date" id="filterTo" title="To date">
+      <button class="ghost" id="refreshBtn">Refresh</button>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="lbl">Total Leads</div><div class="val" id="m_leads">0</div></div>
+      <div class="metric"><div class="lbl">Pickup Calls</div><div class="val" id="m_pickup">0</div></div>
+      <div class="metric"><div class="lbl">Payments Received</div><div class="val" id="m_payments">0</div></div>
+      <div class="metric"><div class="lbl">Sure Count</div><div class="val" id="m_sure">0</div></div>
+      <div class="metric"><div class="lbl">Follow up</div><div class="val" id="m_followup">0</div></div>
+      <div class="metric"><div class="lbl">Rejected Calls</div><div class="val" id="m_rejected">0</div></div>
+    </div>
+
+    <div class="card">
+      <p class="section-title">Call Metrics</p>
+      <div class="chart-with-counts">
+        <div class="chart-wrap"><canvas id="chartCallMetrics"></canvas></div>
+        <div class="chart-counts" id="countsCallMetrics"></div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="section-title">Results</p>
+      <div class="chart-with-counts">
+        <div class="chart-wrap"><canvas id="chartResults"></canvas></div>
+        <div class="chart-counts" id="countsResults"></div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="section-title">Coordinators Summary</p>
+      <div class="chart-with-counts">
+        <div class="chart-wrap"><canvas id="chartCoord"></canvas></div>
+        <div class="chart-counts" id="countsCoord"></div>
+      </div>
+      <div id="coordSummaryList"><div class="empty">No coordinator data yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="js/app.js"></script>
+<script src="js/pwa.js"></script>
+</body>
+</html>
