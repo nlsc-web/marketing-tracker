@@ -30,7 +30,9 @@
       <p class="card-desc">Select Your Name and Enter Your PIN to Continue.</p>
       <div class="field">
         <label for="loginCoord">Coordinator</label>
-        <select id="loginCoord"></select>
+        <select id="loginCoord">
+          <option value="" selected disabled>Coordinator</option>
+        </select>
       </div>
       <div class="field">
         <label for="loginPin">PIN</label>
@@ -63,12 +65,12 @@
   </header>
 
   <nav class="tabs" aria-label="Main">
-    <div class="tab active" data-tab="entry" role="tab" aria-selected="true">Daily Entry</div>
+    <div class="tab active" data-tab="entry" id="tabEntry" role="tab" aria-selected="true">Daily Entry</div>
     <div class="tab" data-tab="dashboard" role="tab" aria-selected="false">Dashboard</div>
   </nav>
 
   <div class="panel active" id="panel-entry">
-    <div class="card">
+      <div class="card" id="entryFormCard">
       <div class="card-head">
         <div>
           <p class="card-heading">Today’s Entry</p>
@@ -125,9 +127,9 @@
       <div class="msg ok" id="saveMsg">Entry Saved.</div>
     </div>
 
-    <div class="card">
-      <p class="section-title">Coordinator Entries</p>
-      <p class="card-desc" style="margin-top:-4px;margin-bottom:12px;">All coordinators’ saved entries — stays after refresh.</p>
+    <div class="card" id="teamDetailsCard">
+      <p class="section-title" id="teamDetailsTitle">Coordinator Entries</p>
+      <p class="card-desc" id="teamDetailsDesc" style="margin-top:-4px;margin-bottom:12px;">All coordinators’ saved entries — stays after refresh.</p>
       <div id="recentList"><div class="empty">Loading...</div></div>
     </div>
   </div>
@@ -143,11 +145,6 @@
 
     <div class="metrics">
       <div class="metric"><div class="lbl">Total Leads</div><div class="val" id="m_leads">0</div></div>
-      <div class="metric"><div class="lbl">Pickup Calls</div><div class="val" id="m_pickup">0</div></div>
-      <div class="metric"><div class="lbl">Payments Received</div><div class="val" id="m_payments">0</div></div>
-      <div class="metric"><div class="lbl">Sure Count</div><div class="val" id="m_sure">0</div></div>
-      <div class="metric"><div class="lbl">Follow up</div><div class="val" id="m_followup">0</div></div>
-      <div class="metric"><div class="lbl">Rejected Calls</div><div class="val" id="m_rejected">0</div></div>
     </div>
 
     <div class="card">

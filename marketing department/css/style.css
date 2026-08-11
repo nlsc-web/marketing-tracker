@@ -359,7 +359,7 @@ button.linklike{
 
 .metrics{
   display:grid;
-  grid-template-columns:repeat(2,1fr);
+  grid-template-columns:minmax(160px, 260px);
   gap:12px;
   margin-bottom:16px;
 }
@@ -522,7 +522,7 @@ canvas{max-width:100%;}
 .login-card{text-align:left;}
 
 @media(min-width:600px){
-  .metrics{grid-template-columns:repeat(4,1fr);}
+  .metrics{grid-template-columns:minmax(180px, 280px);}
 }
 
 @media(max-width:600px){

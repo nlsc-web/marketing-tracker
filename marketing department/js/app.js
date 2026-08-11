@@ -1,12 +1,16 @@
 /* ---- Coordinators and default PINs. Change these before real use. ---- */
 const COORD_PINS = {
-  'Ruchira': '4040',
+  'Mrs.Lakmali': '3030',
+  'Ms.Sajini': '6060',
   'Dinithi': '8080',
   'Tharusha': '5050',
+  'Ruchira': '4040',
   'Nirmala': '1010',
   'Sumudu': '2020'
 };
+const VIEW_ONLY = ['Mrs.Lakmali', 'Ms.Sajini'];
 const COORDS = Object.keys(COORD_PINS);
+const ENTRY_COORDS = COORDS.filter(c => !VIEW_ONLY.includes(c));
 const DEPTS = [
   'Accounts Theory',
   'Accounts Practical',
@@ -25,6 +29,10 @@ let currentUser = sessionStorage.getItem('mdt_user') || '';
 let editingId = null;
 let editingCoordinator = '';
 
+function isViewer(){
+  return VIEW_ONLY.includes(currentUser);
+}
+
 function fillSelect(id, arr){
   const sel = document.getElementById(id);
   arr.forEach(v=>{
@@ -34,9 +42,32 @@ function fillSelect(id, arr){
   });
 }
 fillSelect('loginCoord', COORDS);
-fillSelect('coord', COORDS);
-fillSelect('filterCoord', COORDS);
+fillSelect('coord', ENTRY_COORDS);
+fillSelect('filterCoord', ENTRY_COORDS);
 fillSelect('filterDept', DEPTS);
+
+function applyRoleUI(){
+  const viewer = isViewer();
+  const formCard = document.getElementById('entryFormCard');
+  const tabEntry = document.getElementById('tabEntry');
+  const title = document.getElementById('teamDetailsTitle');
+  const desc = document.getElementById('teamDetailsDesc');
+  const headerSub = document.querySelector('.brand-row .sub');
+
+  if(formCard) formCard.style.display = viewer ? 'none' : '';
+  if(tabEntry) tabEntry.textContent = viewer ? 'Team Details' : 'Daily Entry';
+  if(title) title.textContent = viewer ? 'Team Full Details' : 'Coordinator Entries';
+  if(desc){
+    desc.textContent = viewer
+      ? 'Full details for Dinithi, Tharusha, Ruchira, Nirmala, and Sumudu.'
+      : 'All coordinators’ saved entries — stays after refresh.';
+  }
+  if(headerSub){
+    headerSub.textContent = viewer
+      ? 'View team numbers — dashboard updates for everyone.'
+      : 'Log Daily Numbers — The Dashboard Updates for Everyone.';
+  }
+}
 
 function showApp(){
   document.getElementById('loginScreen').style.display = 'none';
@@ -44,8 +75,11 @@ function showApp(){
   document.getElementById('whoamiName').textContent = currentUser;
   const avatar = document.getElementById('userAvatar');
   if(avatar) avatar.textContent = (currentUser || '?').charAt(0).toUpperCase();
-  document.getElementById('coord').value = currentUser;
-  document.getElementById('entryDate').value = new Date().toISOString().slice(0,10);
+  applyRoleUI();
+  if(!isViewer()){
+    document.getElementById('coord').value = currentUser;
+    document.getElementById('entryDate').value = new Date().toISOString().slice(0,10);
+  }
   loadRecent();
 }
 
@@ -56,22 +90,33 @@ if(currentUser && COORD_PINS[currentUser]){
 document.getElementById('loginBtn').addEventListener('click', ()=>{
   const name = document.getElementById('loginCoord').value;
   const pin = document.getElementById('loginPin').value.trim();
+  const loginMsg = document.getElementById('loginMsg');
+  if(!name){
+    loginMsg.textContent = 'Please select your name.';
+    loginMsg.style.display = 'block';
+    return;
+  }
   if(COORD_PINS[name] === pin){
     currentUser = name;
     sessionStorage.setItem('mdt_user', name);
-    document.getElementById('loginMsg').style.display = 'none';
+    loginMsg.style.display = 'none';
     showApp();
   }else{
-    document.getElementById('loginMsg').style.display = 'block';
+    loginMsg.textContent = 'Wrong PIN. Try again.';
+    loginMsg.style.display = 'block';
   }
 });
 
 document.getElementById('logoutBtn').addEventListener('click', ()=>{
   sessionStorage.removeItem('mdt_user');
   currentUser = '';
+  editingId = null;
+  editingCoordinator = '';
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('loginPin').value = '';
+  document.getElementById('loginCoord').value = '';
+  applyRoleUI();
 });
 
 document.querySelectorAll('.tab').forEach(t=>{
@@ -106,6 +151,10 @@ document.getElementById('cancelEditBtn').addEventListener('click', resetForm);
 const API = '/api/entries';
 
 async function saveEntry(){
+  if(isViewer()){
+    alert('View-only accounts cannot save entries.');
+    return;
+  }
   const id = editingId || ('e' + Date.now() + Math.random().toString(36).slice(2,7));
   const entry = {
     id: id,
@@ -140,6 +189,7 @@ async function saveEntry(){
 document.getElementById('submitBtn').addEventListener('click', saveEntry);
 
 async function deleteEntry(id){
+  if(isViewer()) return;
   if(!confirm('Delete this entry?')) return;
   try{
     const res = await fetch(`${API}/${encodeURIComponent(id)}`, { method: 'DELETE' });
@@ -152,6 +202,7 @@ async function deleteEntry(id){
 }
 
 function editEntry(e){
+  if(isViewer()) return;
   editingId = e.id;
   editingCoordinator = e.coordinator || currentUser;
   document.getElementById('editBadge').style.display = 'inline-block';
@@ -184,23 +235,31 @@ async function getAllEntries(){
   }
 }
 
+function staffEntriesOnly(entries){
+  return entries.filter(e => ENTRY_COORDS.includes(e.coordinator));
+}
+
 async function loadRecent(){
   const box = document.getElementById('recentList');
   box.innerHTML = '<div class="empty">Loading...</div>';
-  const entries = await getAllEntries();
+  const all = await getAllEntries();
+  const entries = staffEntriesOnly(all);
+  const viewer = isViewer();
+
   if(entries.length===0){
-    box.innerHTML = '<div class="empty">No entries yet. Add today\'s numbers above.</div>';
+    box.innerHTML = `<div class="empty">${viewer ? 'No team entries yet.' : 'No entries yet. Add today\'s numbers above.'}</div>`;
     return;
   }
 
   const byCoord = {};
+  ENTRY_COORDS.forEach(name => { byCoord[name] = []; });
   entries.forEach(e=>{
     const name = e.coordinator || 'Unknown';
     if(!byCoord[name]) byCoord[name] = [];
     byCoord[name].push(e);
   });
 
-  const names = Object.keys(byCoord).sort((a,b)=>a.localeCompare(b));
+  const names = ENTRY_COORDS.filter(name => (byCoord[name]||[]).length > 0);
   let html = '';
   names.forEach(name=>{
     const rows = byCoord[name].slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -209,7 +268,8 @@ async function loadRecent(){
       <table>
         <tr>
           <th>Date</th><th>NLSC / COMPANY</th><th>Leads</th><th>Pickup</th>
-          <th>Answer</th><th>N/A</th><th>Payments</th><th>Sure</th><th>Follow up</th><th>Rejected</th><th></th>
+          <th>Answer</th><th>N/A</th><th>Payments</th><th>Sure</th><th>Follow up</th><th>Rejected</th>
+          ${viewer ? '' : '<th></th>'}
         </tr>`;
     rows.forEach(e=>{
       html += `<tr>
@@ -223,25 +283,27 @@ async function loadRecent(){
         <td>${e.sure||0}</td>
         <td>${e.followup||0}</td>
         <td>${e.rejected||0}</td>
-        <td>
+        ${viewer ? '' : `<td>
           <button class="linklike" data-edit="${e.id}">Edit</button>
           <button class="linklike" data-del="${e.id}">Delete</button>
-        </td>
+        </td>`}
       </tr>`;
     });
     html += '</table></div>';
   });
 
   box.innerHTML = html;
-  box.querySelectorAll('[data-edit]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const found = entries.find(x=>x.id===btn.dataset.edit);
-      if(found) editEntry(found);
+  if(!viewer){
+    box.querySelectorAll('[data-edit]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const found = entries.find(x=>x.id===btn.dataset.edit);
+        if(found) editEntry(found);
+      });
     });
-  });
-  box.querySelectorAll('[data-del]').forEach(btn=>{
-    btn.addEventListener('click', ()=> deleteEntry(btn.dataset.del));
-  });
+    box.querySelectorAll('[data-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=> deleteEntry(btn.dataset.del));
+    });
+  }
 }
 
 let callMetricsChart, resultsChart, coordChart;
@@ -296,7 +358,8 @@ function buildPie(existing, canvasId, labels, values){
 }
 
 async function loadDashboard(){
-  const entries = await getAllEntries();
+  const all = await getAllEntries();
+  const entries = staffEntriesOnly(all);
   const fc = document.getElementById('filterCoord').value;
   const fd = document.getElementById('filterDept').value;
   const ff = document.getElementById('filterFrom').value;
@@ -340,11 +403,6 @@ async function loadDashboard(){
   });
 
   document.getElementById('m_leads').textContent = totLeads.toLocaleString();
-  document.getElementById('m_pickup').textContent = totPickup.toLocaleString();
-  document.getElementById('m_payments').textContent = totPayments.toLocaleString();
-  document.getElementById('m_sure').textContent = totSure.toLocaleString();
-  document.getElementById('m_followup').textContent = totFollowup.toLocaleString();
-  document.getElementById('m_rejected').textContent = totRejected.toLocaleString();
 
   const callLabels = ['Leads','Pickup Calls','Answer Calls','N/A Calls'];
   const callValues = [totLeads, totPickup, totAnswer, totNa];

@@ -28,13 +28,13 @@ Set in `js/app.js` at the top (`COORD_PINS`). Defaults:
 
 | Coordinator | PIN |
 |---|---|
-| Ms. Nirmala | 1010 |
-| Sumudu | 2020 |
-| Ishini | 3030 |
-| Ruchira | 4040 |
+| Mrs.Lakmali | 3030 |
+| Ms.Sajini | 6060 |
+| Dinithi | 8080 |
 | Tharusha | 5050 |
-| Kasundi | 6060 |
-| Sajani | 7070 |
+| Ruchira | 4040 |
+| Nirmala | 1010 |
+| Sumudu | 2020 |
 
 Change these before real use.
 
