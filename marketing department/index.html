@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,14 +29,14 @@
       <p class="card-heading">Sign In</p>
       <p class="card-desc">Select Your Name and Enter Your PIN to Continue.</p>
       <div class="field">
-        <label for="loginCoord">Coordinator</label>
+        <label for="loginCoord">Name</label>
         <select id="loginCoord">
-          <option value="" selected disabled>Coordinator</option>
+          <option value="" selected disabled hidden></option>
         </select>
       </div>
       <div class="field">
         <label for="loginPin">PIN</label>
-        <input type="password" id="loginPin" inputmode="numeric" maxlength="4" placeholder="4-digit PIN" autocomplete="current-password">
+        <input type="password" id="loginPin" inputmode="numeric" maxlength="4" autocomplete="current-password">
       </div>
       <button class="primary" id="loginBtn">Log In</button>
       <div class="msg err" id="loginMsg" style="display:none;">Wrong PIN. Try again.</div>
@@ -139,6 +139,7 @@
       <select id="filterCoord"><option value="">All Coordinators</option></select>
       <select id="filterDept"><option value="">All NLSC / COMPANY</option></select>
       <input type="date" id="filterFrom" title="From date">
+      <span class="filter-to">To</span>
       <input type="date" id="filterTo" title="To date">
       <button class="ghost" id="refreshBtn">Refresh</button>
     </div>
@@ -167,7 +168,6 @@
         <div class="chart-wrap"><canvas id="chartCoord"></canvas></div>
         <div class="chart-counts" id="countsCoord"></div>
       </div>
-      <div id="coordSummaryList"><div class="empty">No coordinator data yet.</div></div>
     </div>
   </div>
 </div>

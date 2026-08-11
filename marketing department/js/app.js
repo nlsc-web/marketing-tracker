@@ -265,6 +265,7 @@ async function loadRecent(){
     const rows = byCoord[name].slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     html += `<div class="coord-block">
       <p class="coord-block-name">${name}</p>
+      <div class="table-scroll">
       <table>
         <tr>
           <th>Date</th><th>NLSC / COMPANY</th><th>Leads</th><th>Pickup</th>
@@ -284,12 +285,14 @@ async function loadRecent(){
         <td>${e.followup||0}</td>
         <td>${e.rejected||0}</td>
         ${viewer ? '' : `<td>
-          <button class="linklike" data-edit="${e.id}">Edit</button>
-          <button class="linklike" data-del="${e.id}">Delete</button>
+          <div class="row-actions">
+            <button type="button" class="btn-edit" data-edit="${e.id}">Edit</button>
+            <button type="button" class="btn-delete" data-del="${e.id}">Delete</button>
+          </div>
         </td>`}
       </tr>`;
     });
-    html += '</table></div>';
+    html += `</table></div></div>`;
   });
 
   box.innerHTML = html;
@@ -307,7 +310,24 @@ async function loadRecent(){
 }
 
 let callMetricsChart, resultsChart, coordChart;
-const pieColors = ['#c9a227','#e0c35a','#b8921f','#8a7010','#d4af37','#9a7b12','#f0d878','#a8881a'];
+/* Black / white / gold — high contrast, easy to tell apart */
+const pieColors = [
+  '#a8881a', /* deep gold — was black */
+  '#c9a227',
+  '#f0d56b',
+  '#6b6b6b',
+  '#8a7018',
+  '#d9d2c0',
+  '#3d3d3d',
+  '#b8921f'
+];
+const coordPieColors = [
+  '#7c3aed', /* Dinithi — purple */
+  '#dc2626', /* Tharusha — red */
+  '#16a34a', /* Ruchira — green */
+  '#e11d8f', /* Nirmala — rose */
+  '#1e3a8a'  /* Sumudu — navy blue */
+];
 
 function renderCounts(containerId, labels, values, colors){
   const box = document.getElementById(containerId);
@@ -323,10 +343,11 @@ function renderCounts(containerId, labels, values, colors){
   `).join('');
 }
 
-function buildPie(existing, canvasId, labels, values){
+function buildPie(existing, canvasId, labels, values, colors){
   if(existing) existing.destroy();
   const el = document.getElementById(canvasId);
   if(!el) return null;
+  const palette = colors || pieColors;
   const hasData = values.some(v => v > 0);
   return new Chart(el, {
     type: 'pie',
@@ -334,7 +355,9 @@ function buildPie(existing, canvasId, labels, values){
       labels: hasData ? labels : ['No data'],
       datasets: [{
         data: hasData ? values : [1],
-        backgroundColor: hasData ? labels.map((_, i) => pieColors[i % pieColors.length]) : ['#d0d0d0']
+        backgroundColor: hasData ? labels.map((_, i) => palette[i % palette.length]) : ['#d0d0d0'],
+        borderColor: '#ffffff',
+        borderWidth: 2
       }]
     },
     options: {
@@ -408,9 +431,15 @@ async function loadDashboard(){
   const callValues = [totLeads, totPickup, totAnswer, totNa];
   const resultLabels = ['Payments Received','Sure Count','Follow up','Rejected Calls'];
   const resultValues = [totPayments, totSure, totFollowup, totRejected];
-  const coordRows = Object.values(byCoord).sort((a, b) => a.name.localeCompare(b.name));
+  const coordRows = ENTRY_COORDS
+    .map(name => byCoord[name])
+    .filter(Boolean);
   const coordLabels = coordRows.map(c => c.name);
   const coordValues = coordRows.map(c => c.leads);
+  const coordColors = coordRows.map(c => {
+    const idx = ENTRY_COORDS.indexOf(c.name);
+    return coordPieColors[(idx >= 0 ? idx : 0) % coordPieColors.length];
+  });
 
   renderCounts('countsCallMetrics', callLabels, callValues, pieColors);
   renderCounts('countsResults', resultLabels, resultValues, pieColors);
@@ -418,44 +447,12 @@ async function loadDashboard(){
     'countsCoord',
     coordLabels.length ? coordLabels : ['No data'],
     coordLabels.length ? coordValues : [0],
-    pieColors
+    coordLabels.length ? coordColors : coordPieColors
   );
 
-  callMetricsChart = buildPie(callMetricsChart, 'chartCallMetrics', callLabels, callValues);
-  resultsChart = buildPie(resultsChart, 'chartResults', resultLabels, resultValues);
-  coordChart = buildPie(coordChart, 'chartCoord', coordLabels, coordValues);
-
-  const detailRows = [
-    ['Leads', 'leads'],
-    ['Pickup Calls', 'pickup'],
-    ['Answer Calls', 'answer'],
-    ['N/A Calls', 'na'],
-    ['Payments', 'payments'],
-    ['Sure Count', 'sure'],
-    ['Follow up', 'followup'],
-    ['Rejected Calls', 'rejected']
-  ];
-  const coordList = document.getElementById('coordSummaryList');
-  if(coordRows.length === 0){
-    coordList.innerHTML = '<div class="empty">No coordinator data yet.</div>';
-  }else{
-    coordList.innerHTML = coordRows.map((c) => `
-      <div class="coord-block">
-        <p class="coord-block-name">${c.name}</p>
-        <div class="chart-counts coord-block-counts">
-          ${detailRows.map(([label, key], i) => `
-            <div class="chart-count-row">
-              <span class="chart-count-label">
-                <span class="chart-count-dot" style="background:${pieColors[i % pieColors.length]}"></span>
-                ${label}
-              </span>
-              <span class="chart-count-val">${(c[key]||0).toLocaleString()}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `).join('');
-  }
+  callMetricsChart = buildPie(callMetricsChart, 'chartCallMetrics', callLabels, callValues, pieColors);
+  resultsChart = buildPie(resultsChart, 'chartResults', resultLabels, resultValues, pieColors);
+  coordChart = buildPie(coordChart, 'chartCoord', coordLabels, coordValues, coordLabels.length ? coordColors : coordPieColors);
 }
 
 document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
