@@ -49,6 +49,18 @@ const coordPieColors = [
   '#e11d8f', /* Nirmala — rose */
   '#1e3a8a'  /* Sumudu — navy blue */
 ];
+/* Per-coordinator chart palettes (NLSC pie shades) */
+const personChartColors = {
+  'Dinithi': ['#7c3aed', '#a78bfa', '#5b21b6', '#c4b5fd', '#6d28d9', '#ddd6fe'],
+  'Tharusha': ['#dc2626', '#f87171', '#991b1b', '#fca5a5', '#b91c1c', '#fecaca'],
+  'Ruchira': ['#16a34a', '#4ade80', '#166534', '#86efac', '#15803d', '#bbf7d0'],
+  'Nirmala': ['#e11d8f', '#f472b6', '#9d174d', '#f9a8d4', '#be185d', '#fbcfe8'],
+  'Sumudu': ['#1e3a8a', '#3b82f6', '#1e40af', '#93c5fd', '#1d4ed8', '#bfdbfe']
+};
+
+function colorsForPerson(name){
+  return personChartColors[name] || pieColors;
+}
 
 function isViewer(){
   return VIEW_ONLY.includes(currentUser);
@@ -370,7 +382,7 @@ async function loadRecent(){
     const cid = safeChartId(name);
     const labels = Object.keys(byDept);
     const values = labels.map(k => byDept[k]);
-    chartMetas.push({ cid, labels, values });
+    chartMetas.push({ cid, name, labels, values });
 
     html += `<div class="coord-block">
       <p class="coord-block-name">${name}</p>
@@ -421,13 +433,14 @@ async function loadRecent(){
 
   chartMetas.forEach(meta=>{
     if(!document.getElementById('chartPerson_'+meta.cid)) return;
+    const colors = colorsForPerson(meta.name);
     renderCounts(
       'countsPerson_'+meta.cid,
       meta.labels.length ? meta.labels : ['No data'],
       meta.labels.length ? meta.values : [0],
-      pieColors
+      colors
     );
-    personCharts[meta.cid] = buildPie(null, 'chartPerson_'+meta.cid, meta.labels, meta.values, pieColors);
+    personCharts[meta.cid] = buildPie(null, 'chartPerson_'+meta.cid, meta.labels, meta.values, colors);
   });
 
   if(!viewer){
