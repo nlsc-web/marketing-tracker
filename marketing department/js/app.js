@@ -402,15 +402,22 @@ async function loadRecent(){
         </div>
       </div>
       <div class="table-scroll">
-      <table>
+      <table class="entries-by-date">
         <tr>
-          <th>Date</th><th>NLSC / COMPANY</th><th>Leads</th><th>Pickup</th>
+          <th>NLSC / COMPANY</th><th>Leads</th><th>Pickup</th>
           <th>Answer</th><th>N/A</th><th>Payments</th><th>Sure</th><th>Follow up</th><th>Rejected</th>
           ${viewer ? '' : '<th></th>'}
         </tr>`;
+
+    let lastDate = null;
     rows.forEach(e=>{
-      html += `<tr>
-        <td>${e.date||''}</td>
+      const d = e.date || 'No date';
+      if(d !== lastDate){
+        lastDate = d;
+        const colSpan = viewer ? 9 : 10;
+        html += `<tr class="date-group-row"><td colspan="${colSpan}"><span class="date-group-label">${d}</span></td></tr>`;
+      }
+      html += `<tr class="date-entry-row">
         <td>${e.department||''}</td>
         <td>${e.leads||0}</td>
         <td>${e.pickup||0}</td>

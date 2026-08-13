@@ -581,6 +581,29 @@ table{width:100%; border-collapse:collapse; font-size:0.8125rem;}
 }
 #recentList table,
 .table-scroll table{min-width:720px;}
+.date-group-row td{
+  padding:12px 10px 8px;
+  border-bottom:none;
+  background:transparent;
+}
+.date-entry-row + .date-group-row td{
+  padding-top:22px;
+}
+.date-group-row + .date-entry-row td{
+  border-top:1px solid var(--border);
+}
+.date-group-label{
+  display:inline-block;
+  font-size:0.8125rem;
+  font-weight:700;
+  letter-spacing:0.02em;
+  color:var(--text);
+  background:var(--accent-bg);
+  border:1px solid rgba(201,162,39,.35);
+  border-radius:8px;
+  padding:6px 12px;
+}
+.date-entry-row:hover td{background:#faf8f0;}
 .desktop-only{display:block;}
 .mobile-only{display:none;}
 .entry-cards{display:flex; flex-direction:column; gap:12px;}
@@ -642,7 +665,7 @@ table{width:100%; border-collapse:collapse; font-size:0.8125rem;}
 th,td{text-align:left; padding:10px 8px; border-bottom:1px solid var(--border);}
 th{color:var(--text-secondary); font-weight:600; font-size:0.75rem;}
 tr:last-child td{border-bottom:none;}
-tr:hover td{background:#faf8f0;}
+.date-entry-row:hover td{background:#faf8f0;}
 
 .empty{
   color:var(--text-muted);
