@@ -49,17 +49,24 @@ const coordPieColors = [
   '#e11d8f', /* Nirmala — rose */
   '#1e3a8a'  /* Sumudu — navy blue */
 ];
-/* Per-coordinator chart palettes (NLSC pie shades) */
-const personChartColors = {
-  'Dinithi': ['#7c3aed', '#a78bfa', '#5b21b6', '#c4b5fd', '#6d28d9', '#ddd6fe'],
-  'Tharusha': ['#dc2626', '#f87171', '#991b1b', '#fca5a5', '#b91c1c', '#fecaca'],
-  'Ruchira': ['#16a34a', '#4ade80', '#166534', '#86efac', '#15803d', '#bbf7d0'],
-  'Nirmala': ['#e11d8f', '#f472b6', '#9d174d', '#f9a8d4', '#be185d', '#fbcfe8'],
-  'Sumudu': ['#1e3a8a', '#3b82f6', '#1e40af', '#93c5fd', '#1d4ed8', '#bfdbfe']
+/* NLSC / COMPANY colors — not used by coordinators */
+const DEPT_COLORS = {
+  'Accounts Theory': '#f97316',       /* orange */
+  'Accounts Practical': '#06b6d4',    /* cyan */
+  'Accounts Course': '#eab308',       /* yellow */
+  'Tax 1day Workshop': '#a3e635',     /* lime yellow */
+  'HR 5days Workshop': '#f9a8d4',     /* light pink */
+  'Company Registration': '#ea580c',  /* orange */
+  'Form 39': '#fb7185',              /* coral */
+  'Form 12': '#14b8a6',              /* teal */
+  'Form 13': '#a16207',              /* brown */
+  'Form 15': '#38bdf8',              /* sky blue */
+  'Form 6': '#22d3ee',               /* light cyan */
+  'Form 3': '#78716c'                /* stone */
 };
 
-function colorsForPerson(name){
-  return personChartColors[name] || pieColors;
+function colorsForDepts(labels){
+  return labels.map(name => DEPT_COLORS[name] || '#9ca3af');
 }
 
 function isViewer(){
@@ -433,14 +440,14 @@ async function loadRecent(){
 
   chartMetas.forEach(meta=>{
     if(!document.getElementById('chartPerson_'+meta.cid)) return;
-    const colors = colorsForPerson(meta.name);
+    const colors = colorsForDepts(meta.labels);
     renderCounts(
       'countsPerson_'+meta.cid,
       meta.labels.length ? meta.labels : ['No data'],
       meta.labels.length ? meta.values : [0],
-      colors
+      colors.length ? colors : pieColors
     );
-    personCharts[meta.cid] = buildPie(null, 'chartPerson_'+meta.cid, meta.labels, meta.values, colors);
+    personCharts[meta.cid] = buildPie(null, 'chartPerson_'+meta.cid, meta.labels, meta.values, colors.length ? colors : pieColors);
   });
 
   if(!viewer){
@@ -521,6 +528,7 @@ async function loadDashboard(){
 
   const deptLabels = Object.keys(byDept);
   const deptValues = deptLabels.map(k => byDept[k]);
+  const deptColors = colorsForDepts(deptLabels);
 
   renderCounts('countsCallMetrics', callLabels, callValues, pieColors);
   renderCounts('countsResults', resultLabels, resultValues, pieColors);
@@ -534,13 +542,13 @@ async function loadDashboard(){
     'countsDept',
     deptLabels.length ? deptLabels : ['No data'],
     deptLabels.length ? deptValues : [0],
-    pieColors
+    deptLabels.length ? deptColors : pieColors
   );
 
   callMetricsChart = buildPie(callMetricsChart, 'chartCallMetrics', callLabels, callValues, pieColors);
   resultsChart = buildPie(resultsChart, 'chartResults', resultLabels, resultValues, pieColors);
   coordChart = buildPie(coordChart, 'chartCoord', coordLabels, coordValues, coordLabels.length ? coordColors : coordPieColors);
-  deptChart = buildPie(deptChart, 'chartDept', deptLabels, deptValues, pieColors);
+  deptChart = buildPie(deptChart, 'chartDept', deptLabels, deptValues, deptLabels.length ? deptColors : pieColors);
 }
 
 document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
