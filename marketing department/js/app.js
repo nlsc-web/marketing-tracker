@@ -12,18 +12,13 @@ const VIEW_ONLY = ['Mrs.Lakmali', 'Ms.Sajini'];
 const COORDS = Object.keys(COORD_PINS);
 const ENTRY_COORDS = COORDS.filter(c => !VIEW_ONLY.includes(c));
 const DEPTS = [
+  'Accounts Course',
   'Accounts Theory',
   'Accounts Practical',
-  'Accounts Course',
   'Tax 1day Workshop',
   'HR 5days Workshop',
   'Company Registration',
-  'Form 39',
-  'Form 12',
-  'Form 13',
-  'Form 15',
-  'Form 6',
-  'Form 3'
+  'Form 15'
 ];
 
 let currentUser = sessionStorage.getItem('mdt_user') || '';
