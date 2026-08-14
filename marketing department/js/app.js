@@ -6,7 +6,8 @@ const COORD_PINS = {
   'Tharusha': '5050',
   'Ruchira': '4040',
   'Nirmala': '1010',
-  'Sumudu': '2020'
+  'Sumudu': '2020',
+  'Minoshi': '7070'
 };
 const VIEW_ONLY = ['Mrs.Lakmali', 'Ms.Sajini'];
 const COORDS = Object.keys(COORD_PINS);
@@ -42,7 +43,8 @@ const coordPieColors = [
   '#dc2626', /* Tharusha — red */
   '#16a34a', /* Ruchira — green */
   '#e11d8f', /* Nirmala — rose */
-  '#1e3a8a'  /* Sumudu — navy blue */
+  '#1e3a8a', /* Sumudu — navy blue */
+  '#6b8e23'  /* Minoshi — olive green */
 ];
 /* NLSC / COMPANY colors — not used by coordinators */
 const DEPT_COLORS = {
@@ -92,7 +94,7 @@ function applyRoleUI(){
   if(title) title.textContent = viewer ? 'Team Full Details' : 'My Entries';
   if(desc){
     desc.textContent = viewer
-      ? 'Full details for Dinithi, Tharusha, Ruchira, Nirmala, and Sumudu.'
+      ? 'Full details for Dinithi, Tharusha, Ruchira, Nirmala, Sumudu, and Minoshi.'
       : 'Your saved entries — stays after refresh.';
   }
   if(headerSub){

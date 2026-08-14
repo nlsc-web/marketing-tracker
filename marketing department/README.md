@@ -35,6 +35,7 @@ Set in `js/app.js` at the top (`COORD_PINS`). Defaults:
 | Ruchira | 4040 |
 | Nirmala | 1010 |
 | Sumudu | 2020 |
+| Minoshi | 7070 |
 
 Change these before real use.
 
