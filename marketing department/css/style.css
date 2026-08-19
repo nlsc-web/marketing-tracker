@@ -450,6 +450,27 @@ button.linklike{
   margin-top:4px;
   margin-bottom:18px;
 }
+.entries-date-filter{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  margin:0 0 16px;
+}
+.entries-date-filter label{
+  margin:0;
+  font-size:0.75rem;
+  font-weight:600;
+  color:var(--text-secondary);
+}
+.entries-date-filter input[type=date]{
+  width:auto;
+  max-width:180px;
+  margin:0;
+}
+.entries-date-filter .ghost{
+  min-height:44px;
+}
 .entries-chart-block{
   margin-bottom:20px;
   padding-bottom:8px;

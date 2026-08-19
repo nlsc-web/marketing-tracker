@@ -113,9 +113,14 @@ function showApp(){
   const avatar = document.getElementById('userAvatar');
   if(avatar) avatar.textContent = (currentUser || '?').charAt(0).toUpperCase();
   applyRoleUI();
+  const dateFilter = document.getElementById('entriesDateFilter');
+  if(dateFilter){
+    dateFilter.value = todayISO();
+    dateFilter.dataset.ready = '1';
+  }
   if(!isViewer()){
     document.getElementById('coord').value = currentUser;
-    document.getElementById('entryDate').value = new Date().toISOString().slice(0,10);
+    document.getElementById('entryDate').value = todayISO();
   }
   loadRecent();
 }
@@ -388,20 +393,42 @@ function buildPie(existing, canvasId, labels, values, colors){
   });
 }
 
+function todayISO(){
+  return new Date().toISOString().slice(0,10);
+}
+
+function ensureEntriesDateFilter(){
+  const el = document.getElementById('entriesDateFilter');
+  if(!el) return '';
+  if(!el.dataset.ready){
+    el.value = todayISO();
+    el.dataset.ready = '1';
+  }
+  return el.value || '';
+}
+
 async function loadRecent(){
   const box = document.getElementById('recentList');
   box.innerHTML = '<div class="empty">Loading...</div>';
   destroyPersonCharts();
 
+  const filterDate = ensureEntriesDateFilter();
   const all = await getAllEntries();
   const staff = staffEntriesOnly(all);
   const viewer = isViewer();
-  const entries = viewer
+  let entries = viewer
     ? staff
     : staff.filter(e => e.coordinator === currentUser);
 
+  if(filterDate){
+    entries = entries.filter(e => (e.date || '') === filterDate);
+  }
+
   if(entries.length===0){
-    box.innerHTML = `<div class="empty">${viewer ? 'No team entries yet.' : 'No entries yet. Add today\'s numbers above.'}</div>`;
+    const emptyMsg = filterDate
+      ? (viewer ? `No team entries for ${filterDate}.` : `No entries for ${filterDate}.`)
+      : (viewer ? 'No team entries yet.' : 'No entries yet. Add today\'s numbers above.');
+    box.innerHTML = `<div class="empty">${emptyMsg}</div>`;
     return;
   }
 
@@ -503,6 +530,20 @@ async function loadRecent(){
     });
   }
 }
+
+document.getElementById('entriesDateFilter').addEventListener('change', loadRecent);
+document.getElementById('entriesDateTodayBtn').addEventListener('click', ()=>{
+  const el = document.getElementById('entriesDateFilter');
+  el.value = todayISO();
+  el.dataset.ready = '1';
+  loadRecent();
+});
+document.getElementById('entriesDateAllBtn').addEventListener('click', ()=>{
+  const el = document.getElementById('entriesDateFilter');
+  el.value = '';
+  el.dataset.ready = '1';
+  loadRecent();
+});
 
 async function loadDashboard(){
   const all = await getAllEntries();
