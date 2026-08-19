@@ -13,3 +13,5 @@ services:
       # Without DATABASE_URL, Render uses temporary SQLite (data can reset on redeploy).
       - key: DATABASE_URL
         sync: false
+      - key: SESSION_SECRET
+        sync: false

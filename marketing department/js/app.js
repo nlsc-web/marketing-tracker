@@ -1,17 +1,5 @@
-/* ---- Coordinators and default PINs. Change these before real use. ---- */
-const COORD_PINS = {
-  'Mrs.Lakmali': '3030',
-  'Ms.Sajini': '6060',
-  'Dinithi': '8080',
-  'Tharusha': '5050',
-  'Ruchira': '4040',
-  'Nirmala': '1010',
-  'Sumudu': '2020',
-  'Minoshi': '7070'
-};
-const VIEW_ONLY = ['Mrs.Lakmali', 'Ms.Sajini'];
-const COORDS = Object.keys(COORD_PINS);
-const ENTRY_COORDS = COORDS.filter(c => !VIEW_ONLY.includes(c));
+let COORDS = [];
+let ENTRY_COORDS = [];
 const DEPTS = [
   'Accounts Course',
   'Accounts Theory',
@@ -22,7 +10,8 @@ const DEPTS = [
   'Form 15'
 ];
 
-let currentUser = sessionStorage.getItem('mdt_user') || '';
+let currentUser = '';
+let currentRole = '';
 let editingId = null;
 let editingCoordinator = '';
 let callMetricsChart, resultsChart, coordChart, deptChart;
@@ -67,19 +56,29 @@ function colorsForDepts(labels){
 }
 
 function isViewer(){
-  return VIEW_ONLY.includes(currentUser);
+  return currentRole === 'viewer';
+}
+
+function apiFetch(url, opts){
+  return fetch(url, Object.assign({ credentials: 'include' }, opts || {}));
 }
 
 function fillSelect(id, arr){
   const sel = document.getElementById(id);
+  if(!sel) return;
   arr.forEach(v=>{
     const o = document.createElement('option');
     o.value = v; o.textContent = v;
     sel.appendChild(o);
   });
 }
-fillSelect('loginCoord', COORDS);
-fillSelect('coord', ENTRY_COORDS);
+function applyUsers(list){
+  const users = Array.isArray(list) ? list : [];
+  COORDS = users.map(u => u.name);
+  ENTRY_COORDS = users.filter(u => u.role === 'entry').map(u => u.name);
+  fillSelect('loginCoord', COORDS);
+  fillSelect('coord', ENTRY_COORDS);
+}
 
 function applyRoleUI(){
   const viewer = isViewer();
@@ -93,8 +92,11 @@ function applyRoleUI(){
   if(tabEntry) tabEntry.textContent = viewer ? 'Team Details' : 'Daily Entry';
   if(title) title.textContent = viewer ? 'Team Full Details' : 'My Entries';
   if(desc){
+    const names = ENTRY_COORDS.length
+      ? ENTRY_COORDS.slice(0, -1).join(', ') + (ENTRY_COORDS.length > 1 ? ', and ' : '') + ENTRY_COORDS.slice(-1)
+      : 'the team';
     desc.textContent = viewer
-      ? 'Full details for Dinithi, Tharusha, Ruchira, Nirmala, Sumudu, and Minoshi.'
+      ? `Full details for ${names}.`
       : 'Your saved entries — stays after refresh.';
   }
   if(headerSub){
@@ -118,11 +120,28 @@ function showApp(){
   loadRecent();
 }
 
-if(currentUser && COORD_PINS[currentUser]){
-  showApp();
+async function restoreSession(){
+  try{
+    const usersRes = await apiFetch('/api/users');
+    if(usersRes.ok) applyUsers(await usersRes.json());
+  }catch(e){
+    console.error(e);
+  }
+  try{
+    const meRes = await apiFetch('/api/me');
+    if(!meRes.ok) return;
+    const me = await meRes.json();
+    currentUser = me.name || '';
+    currentRole = me.role || '';
+    showApp();
+  }catch(e){
+    console.error(e);
+  }
 }
 
-document.getElementById('loginBtn').addEventListener('click', ()=>{
+restoreSession();
+
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
   const name = document.getElementById('loginCoord').value;
   const pin = document.getElementById('loginPin').value.trim();
   const loginMsg = document.getElementById('loginMsg');
@@ -131,20 +150,38 @@ document.getElementById('loginBtn').addEventListener('click', ()=>{
     loginMsg.style.display = 'block';
     return;
   }
-  if(COORD_PINS[name] === pin){
-    currentUser = name;
-    sessionStorage.setItem('mdt_user', name);
+  try{
+    const res = await apiFetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, pin })
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      loginMsg.textContent = data.error || 'Wrong PIN. Try again.';
+      loginMsg.style.display = 'block';
+      return;
+    }
+    currentUser = data.name;
+    currentRole = data.role || '';
     loginMsg.style.display = 'none';
+    document.getElementById('loginPin').value = '';
     showApp();
-  }else{
-    loginMsg.textContent = 'Wrong PIN. Try again.';
+  }catch(e){
+    console.error(e);
+    loginMsg.textContent = 'Could not log in. Is the server running?';
     loginMsg.style.display = 'block';
   }
 });
 
-document.getElementById('logoutBtn').addEventListener('click', ()=>{
-  sessionStorage.removeItem('mdt_user');
+document.getElementById('loginPin').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+  try{ await apiFetch('/api/logout', { method: 'POST' }); }catch(e){}
   currentUser = '';
+  currentRole = '';
   editingId = null;
   editingCoordinator = '';
   document.getElementById('app').style.display = 'none';
@@ -206,7 +243,7 @@ async function saveEntry(){
     rejected: Number(document.getElementById('f_rejected').value)||0
   };
   try{
-    const res = await fetch(API, {
+    const res = await apiFetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entry)
@@ -227,7 +264,7 @@ async function deleteEntry(id){
   if(isViewer()) return;
   if(!confirm('Delete this entry?')) return;
   try{
-    const res = await fetch(`${API}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const res = await apiFetch(`${API}/${encodeURIComponent(id)}`, { method: 'DELETE' });
     if(!res.ok) throw new Error('Delete failed');
     loadRecent();
   }catch(e){
@@ -261,7 +298,7 @@ function editEntry(e){
 
 async function getAllEntries(){
   try{
-    const res = await fetch(API);
+    const res = await apiFetch(API);
     if(!res.ok) throw new Error('Load failed');
     const entries = await res.json();
     return Array.isArray(entries) ? entries : [];

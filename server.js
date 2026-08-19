@@ -1,42 +1,84 @@
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const db = require('./db');
+const auth = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 5500;
 const STATIC_DIR = path.join(__dirname, 'marketing department');
 
-app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '32kb' }));
 app.use(express.static(STATIC_DIR));
 
 function asyncHandler(fn) {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 }
 
-app.get('/api/entries', asyncHandler(async (req, res) => {
+app.get('/api/health', asyncHandler(async (req, res) => {
+  const dbHealth = await db.health();
+  res.json({ ok: true, time: new Date().toISOString(), db: dbHealth });
+}));
+
+app.get('/api/users', (req, res) => {
+  res.json(auth.publicUsers());
+});
+
+app.get('/api/me', (req, res) => {
+  const user = auth.readSession(req);
+  if (!user) return res.status(401).json({ error: 'Login required' });
+  res.json(user);
+});
+
+app.post('/api/login', asyncHandler(async (req, res) => {
+  const name = String((req.body || {}).name || '').trim();
+  const pin = String((req.body || {}).pin || '');
+  if (!name || !pin) {
+    return res.status(400).json({ error: 'Name and PIN are required' });
+  }
+  if (auth.tooManyFails(req, name)) {
+    return res.status(429).json({ error: 'Too many attempts. Try again in 15 minutes.' });
+  }
+  const user = await auth.login(name, pin);
+  if (!user) {
+    auth.recordFail(req, name);
+    return res.status(401).json({ error: 'Wrong PIN. Try again.' });
+  }
+  auth.clearFails(req, name);
+  res.setHeader('Set-Cookie', auth.cookieHeader(auth.createSession(user)));
+  res.json(user);
+}));
+
+app.post('/api/logout', (req, res) => {
+  res.setHeader('Set-Cookie', auth.clearCookieHeader());
+  res.json({ ok: true });
+});
+
+app.get('/api/entries', auth.requireAuth, asyncHandler(async (req, res) => {
   res.json(await db.getAllEntries());
 }));
 
-app.get('/api/entries/:id', asyncHandler(async (req, res) => {
+app.get('/api/entries/:id', auth.requireAuth, asyncHandler(async (req, res) => {
   const entry = await db.getEntryById(req.params.id);
   if (!entry) return res.status(404).json({ error: 'Entry not found' });
   res.json(entry);
 }));
 
-app.post('/api/entries', asyncHandler(async (req, res) => {
+app.post('/api/entries', auth.requireAuth, auth.requireEntry, asyncHandler(async (req, res) => {
   const body = req.body || {};
-  if (!body.date || !body.coordinator) {
-    return res.status(400).json({ error: 'date and coordinator are required' });
+  if (!body.date) {
+    return res.status(400).json({ error: 'date is required' });
   }
 
   const id = body.id || ('e' + Date.now() + Math.random().toString(36).slice(2, 7));
   const existing = await db.getEntryById(id);
+  if (existing && existing.coordinator !== req.user.name) {
+    return res.status(403).json({ error: 'You can only edit your own entries' });
+  }
+
   const entry = {
     id,
     date: body.date,
-    coordinator: body.coordinator,
+    coordinator: req.user.name,
     department: body.department || '',
     leads: Number(body.leads) || 0,
     answer: Number(body.answer) || 0,
@@ -54,15 +96,18 @@ app.post('/api/entries', asyncHandler(async (req, res) => {
   res.status(existing ? 200 : 201).json(saved);
 }));
 
-app.put('/api/entries/:id', asyncHandler(async (req, res) => {
+app.put('/api/entries/:id', auth.requireAuth, auth.requireEntry, asyncHandler(async (req, res) => {
   const prev = await db.getEntryById(req.params.id);
   if (!prev) return res.status(404).json({ error: 'Entry not found' });
+  if (prev.coordinator !== req.user.name) {
+    return res.status(403).json({ error: 'You can only edit your own entries' });
+  }
 
   const body = req.body || {};
   const entry = {
     ...prev,
     date: body.date ?? prev.date,
-    coordinator: body.coordinator ?? prev.coordinator,
+    coordinator: req.user.name,
     department: body.department ?? prev.department,
     leads: Number(body.leads ?? prev.leads) || 0,
     answer: Number(body.answer ?? prev.answer) || 0,
@@ -79,15 +124,15 @@ app.put('/api/entries/:id', asyncHandler(async (req, res) => {
   res.json(await db.upsertEntry(entry));
 }));
 
-app.delete('/api/entries/:id', asyncHandler(async (req, res) => {
+app.delete('/api/entries/:id', auth.requireAuth, auth.requireEntry, asyncHandler(async (req, res) => {
+  const prev = await db.getEntryById(req.params.id);
+  if (!prev) return res.status(404).json({ error: 'Entry not found' });
+  if (prev.coordinator !== req.user.name) {
+    return res.status(403).json({ error: 'You can only delete your own entries' });
+  }
   const ok = await db.deleteEntry(req.params.id);
   if (!ok) return res.status(404).json({ error: 'Entry not found' });
   res.json({ ok: true });
-}));
-
-app.get('/api/health', asyncHandler(async (req, res) => {
-  const dbHealth = await db.health();
-  res.json({ ok: true, time: new Date().toISOString(), db: dbHealth });
 }));
 
 app.get('*', (req, res) => {
@@ -96,7 +141,7 @@ app.get('*', (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).json({ error: err.message || 'Server error' });
+  res.status(500).json({ error: 'Server error' });
 });
 
 async function start() {

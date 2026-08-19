@@ -1,7 +1,7 @@
 node_modules/
 data/entries.json
 data/tracker.db
-data/tracker.db-*
+data/.session-secret
 # seed-entries.json is committed so production can bootstrap once
 .DS_Store
 .env
