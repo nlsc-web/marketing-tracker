@@ -7,7 +7,8 @@ const DEPTS = [
   'Tax 1day Workshop',
   'HR 5days Workshop',
   'Company Registration',
-  'Form 15'
+  'Form 15',
+  'Bags'
 ];
 
 let currentUser = '';
@@ -47,6 +48,7 @@ const DEPT_COLORS = {
   'Form 12': '#14b8a6',              /* teal */
   'Form 13': '#a16207',              /* brown */
   'Form 15': '#38bdf8',              /* sky blue */
+  'Bags': '#8b5cf6',                 /* violet */
   'Form 6': '#22d3ee',               /* light cyan */
   'Form 3': '#78716c'                /* stone */
 };
