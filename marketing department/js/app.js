@@ -1,5 +1,15 @@
 let COORDS = [];
 let ENTRY_COORDS = [];
+const FALLBACK_USERS = [
+  { name: 'Mrs.Lakmali', role: 'viewer' },
+  { name: 'Ms.Sajini', role: 'viewer' },
+  { name: 'Dinithi', role: 'entry' },
+  { name: 'Tharusha', role: 'entry' },
+  { name: 'Ruchira', role: 'entry' },
+  { name: 'Nirmala', role: 'entry' },
+  { name: 'Sumudu', role: 'entry' },
+  { name: 'Minoshi', role: 'entry' }
+];
 const DEPTS = [
   'Accounts Course',
   'Accounts Theory',
@@ -65,21 +75,34 @@ function apiFetch(url, opts){
   return fetch(url, Object.assign({ credentials: 'include' }, opts || {}));
 }
 
-function fillSelect(id, arr){
+function fillSelect(id, arr, keepPlaceholder){
   const sel = document.getElementById(id);
   if(!sel) return;
+  const placeholder = keepPlaceholder ? sel.querySelector('option[value=""]') : null;
+  sel.innerHTML = '';
+  if(placeholder){
+    sel.appendChild(placeholder);
+  }else if(keepPlaceholder){
+    const o = document.createElement('option');
+    o.value = '';
+    o.disabled = true;
+    o.selected = true;
+    o.hidden = true;
+    sel.appendChild(o);
+  }
   arr.forEach(v=>{
     const o = document.createElement('option');
     o.value = v; o.textContent = v;
     sel.appendChild(o);
   });
 }
+
 function applyUsers(list){
-  const users = Array.isArray(list) ? list : [];
+  const users = Array.isArray(list) && list.length ? list : FALLBACK_USERS;
   COORDS = users.map(u => u.name);
   ENTRY_COORDS = users.filter(u => u.role === 'entry').map(u => u.name);
-  fillSelect('loginCoord', COORDS);
-  fillSelect('coord', ENTRY_COORDS);
+  fillSelect('loginCoord', COORDS, true);
+  fillSelect('coord', ENTRY_COORDS, false);
 }
 
 function applyRoleUI(){
@@ -128,6 +151,7 @@ function showApp(){
 }
 
 async function restoreSession(){
+  applyUsers(FALLBACK_USERS);
   try{
     const usersRes = await apiFetch('/api/users');
     if(usersRes.ok) applyUsers(await usersRes.json());
