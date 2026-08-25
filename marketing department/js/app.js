@@ -17,6 +17,7 @@ const DEPTS = [
   'Tax 1day Workshop',
   'HR 5days Workshop',
   'PT & CT 7days Programme',
+  'HR & Payroll',
   'Company Registration',
   'Form 15',
   'Bags'
@@ -55,6 +56,7 @@ const DEPT_COLORS = {
   'Tax 1day Workshop': '#a3e635',     /* lime yellow */
   'HR 5days Workshop': '#f9a8d4',     /* light pink */
   'PT & CT 7days Programme': '#2563eb', /* blue */
+  'HR & Payroll': '#0d9488',          /* teal */
   'Company Registration': '#ea580c',  /* orange */
   'Form 39': '#fb7185',              /* coral */
   'Form 12': '#14b8a6',              /* teal */
