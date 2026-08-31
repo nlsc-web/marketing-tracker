@@ -109,6 +109,18 @@ function applyUsers(list){
   fillSelect('coord', ENTRY_COORDS, false);
 }
 
+function fillDeptList(){
+  const list = document.getElementById('deptList');
+  if(!list) return;
+  list.innerHTML = '';
+  DEPTS.forEach(v=>{
+    const o = document.createElement('option');
+    o.value = v;
+    list.appendChild(o);
+  });
+}
+fillDeptList();
+
 function applyRoleUI(){
   const viewer = isViewer();
   const formCard = document.getElementById('entryFormCard');
@@ -248,7 +260,7 @@ function resetForm(){
   document.getElementById('cancelEditBtn').style.display = 'none';
   document.getElementById('submitBtn').textContent = 'Save Entry';
   document.getElementById('entryDate').value = new Date().toISOString().slice(0,10);
-  document.getElementById('dept').selectedIndex = 0;
+  document.getElementById('dept').value = '';
   document.getElementById('coord').value = currentUser;
   ['f_leads','f_answer','f_na','f_pickup','f_payments','f_sure','f_followup','f_rejected'].forEach(id=>document.getElementById(id).value=0);
 }
@@ -262,12 +274,21 @@ async function saveEntry(){
     alert('View-only accounts cannot save entries.');
     return;
   }
+  if(!document.getElementById('entryDate').value){
+    alert('Please select a date.');
+    return;
+  }
+  const department = document.getElementById('dept').value.trim();
+  if(!department){
+    alert('Please type or select NLSC / COMPANY.');
+    return;
+  }
   const id = editingId || ('e' + Date.now() + Math.random().toString(36).slice(2,7));
   const entry = {
     id: id,
     date: document.getElementById('entryDate').value,
     coordinator: editingCoordinator || currentUser,
-    department: document.getElementById('dept').value,
+    department: department,
     leads: Number(document.getElementById('f_leads').value)||0,
     answer: Number(document.getElementById('f_answer').value)||0,
     na: Number(document.getElementById('f_na').value)||0,
@@ -318,7 +339,7 @@ function editEntry(e){
   document.getElementById('submitBtn').textContent = 'Update entry';
   document.getElementById('coord').value = editingCoordinator;
   document.getElementById('entryDate').value = e.date || '';
-  document.getElementById('dept').value = e.department || DEPTS[0];
+  document.getElementById('dept').value = e.department || '';
   document.getElementById('f_leads').value = e.leads || 0;
   document.getElementById('f_answer').value = e.answer || 0;
   document.getElementById('f_na').value = e.na || 0;
