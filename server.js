@@ -8,7 +8,13 @@ const PORT = process.env.PORT || 5500;
 const STATIC_DIR = path.join(__dirname, 'marketing department');
 
 app.use(express.json({ limit: '32kb' }));
-app.use(express.static(STATIC_DIR));
+app.use(express.static(STATIC_DIR, {
+  setHeaders(res, filePath) {
+    if (/\.(html|js|css|webmanifest)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
+}));
 
 function asyncHandler(fn) {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);

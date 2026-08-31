@@ -1,4 +1,4 @@
-const CACHE_NAME = 'md-tracker-v3';
+const CACHE_NAME = 'md-tracker-v5';
 const ASSETS = [
   '/',
   '/index.html',
@@ -38,16 +38,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      const network = fetch(req).then((res) => {
-        if (res && res.ok && url.origin === self.location.origin) {
+  const isAppFile = url.pathname === '/' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css');
+
+  if (isAppFile) {
+    event.respondWith(
+      fetch(req).then((res) => {
+        if (res && res.ok) {
           const clone = res.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
         }
         return res;
-      }).catch(() => cached);
-      return cached || network;
-    })
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(req).then((cached) => cached || fetch(req))
   );
 });
