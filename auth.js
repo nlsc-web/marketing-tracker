@@ -16,7 +16,8 @@ const USERS = [
   { name: 'Ruchira', role: 'entry', pinHash: '$2b$10$GpXBoOG4ey/RYxawwcMTz.RigMPySltVyNGAkmmKbZibwqHpYi5Tq' },
   { name: 'Nirmala', role: 'entry', pinHash: '$2b$10$p0IYd5JsGU6Fq.84JcqNueLS6y5dAUPshaI3uDZpMwmuwh.WoWoHi' },
   { name: 'Sumudu', role: 'entry', pinHash: '$2b$10$qqMnYNQziqUKZtG4BLG.pu6vvdkPQT6Eaqvae0rzhR..GHQT5qTo2' },
-  { name: 'Minoshi', role: 'entry', pinHash: '$2b$10$dPLT1ps8.wKTZQlDDz5hSexvQQFUNcF0YtM3U.YbyEQLHC8Oej9Q6' }
+  { name: 'Minoshi', role: 'entry', pinHash: '$2b$10$dPLT1ps8.wKTZQlDDz5hSexvQQFUNcF0YtM3U.YbyEQLHC8Oej9Q6' },
+  { name: 'Kalasha', role: 'entry', pinHash: '$2b$10$oydWMzuJW.Lt4Dr8rPafA.vlU.8JZxe7MBXnYApje3txpbSgvQhYm' }
 ];
 
 const loginFails = new Map();

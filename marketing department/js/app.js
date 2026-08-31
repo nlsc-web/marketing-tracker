@@ -8,7 +8,8 @@ const FALLBACK_USERS = [
   { name: 'Ruchira', role: 'entry' },
   { name: 'Nirmala', role: 'entry' },
   { name: 'Sumudu', role: 'entry' },
-  { name: 'Minoshi', role: 'entry' }
+  { name: 'Minoshi', role: 'entry' },
+  { name: 'Kalasha', role: 'entry' }
 ];
 const DEPTS = [
   'Accounts Course',
@@ -18,6 +19,8 @@ const DEPTS = [
   'HR 5days Workshop',
   'PT & CT 7days Programme',
   'HR & Payroll',
+  'HR 1day Workshop',
+  'Entrepreneurship Event',
   'Company Registration',
   'Form 15',
   'Bags'
@@ -46,7 +49,8 @@ const coordPieColors = [
   '#16a34a', /* Ruchira — green */
   '#e11d8f', /* Nirmala — rose */
   '#1e3a8a', /* Sumudu — navy blue */
-  '#6b8e23'  /* Minoshi — olive green */
+  '#6b8e23', /* Minoshi — olive green */
+  '#b45309'  /* Kalasha — brown */
 ];
 /* NLSC / COMPANY colors — not used by coordinators */
 const DEPT_COLORS = {
@@ -57,6 +61,8 @@ const DEPT_COLORS = {
   'HR 5days Workshop': '#f9a8d4',     /* light pink */
   'PT & CT 7days Programme': '#2563eb', /* blue */
   'HR & Payroll': '#0d9488',          /* teal */
+  'HR 1day Workshop': '#7c3aed',     /* purple */
+  'Entrepreneurship Event': '#db2777', /* magenta */
   'Company Registration': '#ea580c',  /* orange */
   'Form 39': '#fb7185',              /* coral */
   'Form 12': '#14b8a6',              /* teal */
