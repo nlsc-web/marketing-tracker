@@ -9,7 +9,7 @@ const FALLBACK_USERS = [
   { name: 'Nirmala', role: 'entry' },
   { name: 'Sumudu', role: 'entry' },
   { name: 'Minoshi', role: 'entry' },
-  { name: 'Kalasha', role: 'entry' }
+  { name: 'Dilrukshi', role: 'entry' }
 ];
 const DEPTS = [
   'Accounts Course',
@@ -50,7 +50,7 @@ const coordPieColors = [
   '#e11d8f', /* Nirmala — rose */
   '#1e3a8a', /* Sumudu — navy blue */
   '#6b8e23', /* Minoshi — olive green */
-  '#b45309'  /* Kalasha — brown */
+  '#b45309'  /* Dilrukshi — brown */
 ];
 /* NLSC / COMPANY colors — not used by coordinators */
 const DEPT_COLORS = {
