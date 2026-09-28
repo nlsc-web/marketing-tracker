@@ -22,6 +22,8 @@ const DEPTS = [
   'HR 1day Workshop',
   'Entrepreneurship Event',
   'Company Registration',
+  'BO Form',
+  'Vacancies',
   'Form 15',
   'Bags'
 ];
@@ -64,6 +66,8 @@ const DEPT_COLORS = {
   'HR 1day Workshop': '#7c3aed',     /* purple */
   'Entrepreneurship Event': '#db2777', /* magenta */
   'Company Registration': '#ea580c',  /* orange */
+  'BO Form': '#64748b',              /* slate */
+  'Vacancies': '#ca8a04',            /* gold */
   'Form 39': '#fb7185',              /* coral */
   'Form 12': '#14b8a6',              /* teal */
   'Form 13': '#a16207',              /* brown */
