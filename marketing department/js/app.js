@@ -122,12 +122,16 @@ function applyUsers(list){
 function applyRoleUI(){
   const viewer = isViewer();
   const formCard = document.getElementById('entryFormCard');
+  const accountsCard = document.getElementById('accountsCard');
   const tabEntry = document.getElementById('tabEntry');
   const title = document.getElementById('teamDetailsTitle');
   const desc = document.getElementById('teamDetailsDesc');
   const headerSub = document.querySelector('.brand-row .sub');
+  const deleteMine = document.getElementById('deleteAccountBtn');
 
   if(formCard) formCard.style.display = viewer ? 'none' : '';
+  if(accountsCard) accountsCard.style.display = viewer ? '' : 'none';
+  if(deleteMine) deleteMine.style.display = '';
   if(tabEntry) tabEntry.textContent = viewer ? 'Team Details' : 'Daily Entry';
   if(title) title.textContent = viewer ? 'Team Full Details' : 'My Entries';
   if(desc){
@@ -143,6 +147,61 @@ function applyRoleUI(){
       ? 'View team numbers — dashboard updates for everyone.'
       : 'Log Daily Numbers — The Dashboard Updates for Everyone.';
   }
+  if(viewer) renderAccountsList();
+}
+
+function renderAccountsList(){
+  const box = document.getElementById('accountsList');
+  if(!box) return;
+  const removable = ENTRY_COORDS.slice().sort((a,b)=>a.localeCompare(b));
+  if(!removable.length){
+    box.innerHTML = '<div class="empty">No staff accounts to remove.</div>';
+    return;
+  }
+  box.innerHTML = removable.map(name => `
+    <div class="account-row">
+      <span class="account-name">${escapeHtml(name)}</span>
+      <button type="button" class="btn-delete" data-remove-user="${escapeHtml(name)}">Remove</button>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(s){
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+async function refreshUsersFromServer(){
+  try{
+    const usersRes = await apiFetch('/api/users');
+    if(usersRes.ok) applyUsers(await usersRes.json());
+  }catch(e){
+    console.error(e);
+  }
+  applyRoleUI();
+}
+
+async function removeAccount(name){
+  const res = await apiFetch('/api/users/' + encodeURIComponent(name), { method: 'DELETE' });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error || 'Could not remove account.');
+  return data;
+}
+
+async function forceLogoutLocal(){
+  currentUser = '';
+  currentRole = '';
+  editingId = null;
+  editingCoordinator = '';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginPin').value = '';
+  document.getElementById('loginCoord').value = '';
+  showSignIn();
+  await refreshUsersFromServer();
 }
 
 function showApp(){
@@ -186,6 +245,24 @@ async function restoreSession(){
 
 restoreSession();
 
+function showSignIn(){
+  document.getElementById('signInCard').style.display = '';
+  document.getElementById('registerCard').style.display = 'none';
+  const msg = document.getElementById('registerMsg');
+  if(msg) msg.style.display = 'none';
+}
+
+function showRegister(){
+  document.getElementById('signInCard').style.display = 'none';
+  document.getElementById('registerCard').style.display = '';
+  const msg = document.getElementById('loginMsg');
+  if(msg) msg.style.display = 'none';
+  document.getElementById('regName').focus();
+}
+
+document.getElementById('showRegisterBtn').addEventListener('click', showRegister);
+document.getElementById('showSignInBtn').addEventListener('click', showSignIn);
+
 document.getElementById('loginBtn').addEventListener('click', async ()=>{
   const name = document.getElementById('loginCoord').value;
   const pin = document.getElementById('loginPin').value.trim();
@@ -219,21 +296,97 @@ document.getElementById('loginBtn').addEventListener('click', async ()=>{
   }
 });
 
+document.getElementById('registerBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('regName').value.trim();
+  const pin = document.getElementById('regPin').value.trim();
+  const pin2 = document.getElementById('regPin2').value.trim();
+  const msg = document.getElementById('registerMsg');
+  if(!name){
+    msg.textContent = 'Please enter your name.';
+    msg.style.display = 'block';
+    return;
+  }
+  if(!/^\d{4}$/.test(pin)){
+    msg.textContent = 'PIN must be exactly 4 digits.';
+    msg.style.display = 'block';
+    return;
+  }
+  if(pin !== pin2){
+    msg.textContent = 'PINs do not match.';
+    msg.style.display = 'block';
+    return;
+  }
+  try{
+    const res = await apiFetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, pin })
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      msg.textContent = data.error || 'Could not create account.';
+      msg.style.display = 'block';
+      return;
+    }
+    try{
+      const usersRes = await apiFetch('/api/users');
+      if(usersRes.ok) applyUsers(await usersRes.json());
+    }catch(e){}
+    currentUser = data.name;
+    currentRole = data.role || 'entry';
+    msg.style.display = 'none';
+    document.getElementById('regName').value = '';
+    document.getElementById('regPin').value = '';
+    document.getElementById('regPin2').value = '';
+    showSignIn();
+    showApp();
+  }catch(e){
+    console.error(e);
+    msg.textContent = 'Could not create account. Is the server running?';
+    msg.style.display = 'block';
+  }
+});
+
 document.getElementById('loginPin').addEventListener('keydown', (e)=>{
   if(e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+['regName','regPin','regPin2'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') document.getElementById('registerBtn').click();
+  });
 });
 
 document.getElementById('logoutBtn').addEventListener('click', async ()=>{
   try{ await apiFetch('/api/logout', { method: 'POST' }); }catch(e){}
-  currentUser = '';
-  currentRole = '';
-  editingId = null;
-  editingCoordinator = '';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('loginPin').value = '';
-  document.getElementById('loginCoord').value = '';
-  applyRoleUI();
+  await forceLogoutLocal();
+});
+
+document.getElementById('deleteAccountBtn').addEventListener('click', async ()=>{
+  if(!currentUser) return;
+  if(!confirm(`Delete account "${currentUser}"? You will be logged out and removed from the login list.`)) return;
+  try{
+    await removeAccount(currentUser);
+    await forceLogoutLocal();
+  }catch(e){
+    alert(e.message || 'Could not delete account.');
+  }
+});
+
+document.getElementById('accountsList').addEventListener('click', async (e)=>{
+  const btn = e.target.closest('[data-remove-user]');
+  if(!btn) return;
+  const name = btn.getAttribute('data-remove-user');
+  if(!name) return;
+  if(!confirm(`Remove "${name}" from the app? They will no longer appear in the login list.`)) return;
+  btn.disabled = true;
+  try{
+    await removeAccount(name);
+    await refreshUsersFromServer();
+    if(typeof loadRecent === 'function') loadRecent();
+  }catch(err){
+    alert(err.message || 'Could not remove account.');
+    btn.disabled = false;
+  }
 });
 
 document.querySelectorAll('.tab').forEach(t=>{

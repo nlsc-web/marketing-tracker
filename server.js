@@ -29,11 +29,42 @@ app.get('/api/users', (req, res) => {
   res.json(auth.publicUsers());
 });
 
+app.delete('/api/users/:name', auth.requireAuth, (req, res) => {
+  const result = auth.removeUser(req.params.name, req.user);
+  if (result.error) {
+    return res.status(result.status || 400).json({ error: result.error });
+  }
+  const removedSelf = result.name.toLowerCase() === String(req.user.name).toLowerCase();
+  if (removedSelf) {
+    res.setHeader('Set-Cookie', auth.clearCookieHeader());
+  }
+  res.json({ ok: true, name: result.name });
+});
+
 app.get('/api/me', (req, res) => {
   const user = auth.readSession(req);
   if (!user) return res.status(401).json({ error: 'Login required' });
   res.json(user);
 });
+
+app.post('/api/register', asyncHandler(async (req, res) => {
+  const name = String((req.body || {}).name || '').trim();
+  const pin = String((req.body || {}).pin || '');
+  if (!name || !pin) {
+    return res.status(400).json({ error: 'Name and PIN are required' });
+  }
+  if (auth.tooManyFails(req, name)) {
+    return res.status(429).json({ error: 'Too many attempts. Try again in 15 minutes.' });
+  }
+  const result = await auth.register(name, pin);
+  if (result.error) {
+    auth.recordFail(req, name);
+    return res.status(result.status || 400).json({ error: result.error });
+  }
+  auth.clearFails(req, name);
+  res.setHeader('Set-Cookie', auth.cookieHeader(auth.createSession(result.user)));
+  res.status(201).json(result.user);
+}));
 
 app.post('/api/login', asyncHandler(async (req, res) => {
   const name = String((req.body || {}).name || '').trim();

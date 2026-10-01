@@ -7,8 +7,11 @@ const COOKIE = 'mdt_sid';
 const SESSION_DAYS = 7;
 const MAX_FAILS = 5;
 const FAIL_WINDOW_MS = 15 * 60 * 1000;
+const NAME_MIN = 2;
+const NAME_MAX = 40;
+const PIN_RE = /^\d{4}$/;
 
-const USERS = [
+const SEED_USERS = [
   { name: 'Mrs.Lakmali', role: 'viewer', pinHash: '$2b$10$tz8ogCqou07Vuf.EGCR2Xep9zhgxX9tRN09lqEdZLWK2K8vWxCUji' },
   { name: 'Ms.Sajini', role: 'viewer', pinHash: '$2b$10$iPGmDh6X1Ael1knXyiw10OQJalH00/ns1.bj5gnJ9..WBqT7ArFUy' },
   { name: 'Dinithi', role: 'entry', pinHash: '$2b$10$19H4KPsKTT.l2DFA8xTkWe1qiAKiyCyhYg/PwYb28pO4UdisHMauO' },
@@ -26,15 +29,54 @@ function isProd() {
   return Boolean(process.env.RENDER || process.env.NODE_ENV === 'production');
 }
 
-function loadSecret() {
-  if (process.env.SESSION_SECRET && process.env.SESSION_SECRET.length >= 16) {
-    return process.env.SESSION_SECRET;
-  }
+function dataDir() {
   const dir = process.env.DATA_DIR
     ? path.resolve(process.env.DATA_DIR)
     : path.join(__dirname, 'data');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, '.session-secret');
+  return dir;
+}
+
+function usersFile() {
+  return path.join(dataDir(), 'users.json');
+}
+
+function normalizeName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ');
+}
+
+function loadUsers() {
+  const file = usersFile();
+  if (!fs.existsSync(file)) {
+    fs.writeFileSync(file, JSON.stringify(SEED_USERS, null, 2), 'utf8');
+    return SEED_USERS.map((u) => ({ ...u }));
+  }
+  try {
+    const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (!Array.isArray(raw) || !raw.length) {
+      fs.writeFileSync(file, JSON.stringify(SEED_USERS, null, 2), 'utf8');
+      return SEED_USERS.map((u) => ({ ...u }));
+    }
+    return raw
+      .filter((u) => u && u.name && u.pinHash && (u.role === 'viewer' || u.role === 'entry'))
+      .map((u) => ({ name: String(u.name), role: u.role, pinHash: String(u.pinHash) }));
+  } catch {
+    fs.writeFileSync(file, JSON.stringify(SEED_USERS, null, 2), 'utf8');
+    return SEED_USERS.map((u) => ({ ...u }));
+  }
+}
+
+function saveUsers(list) {
+  fs.writeFileSync(usersFile(), JSON.stringify(list, null, 2), 'utf8');
+}
+
+let USERS = loadUsers();
+
+function loadSecret() {
+  if (process.env.SESSION_SECRET && process.env.SESSION_SECRET.length >= 16) {
+    return process.env.SESSION_SECRET;
+  }
+  const file = path.join(dataDir(), '.session-secret');
   if (fs.existsSync(file)) return fs.readFileSync(file, 'utf8').trim();
   const secret = crypto.randomBytes(32).toString('hex');
   fs.writeFileSync(file, secret, { encoding: 'utf8' });
@@ -51,11 +93,57 @@ function publicUsers() {
 }
 
 function findUser(name) {
-  return USERS.find((u) => u.name === name) || null;
+  const n = normalizeName(name).toLowerCase();
+  return USERS.find((u) => u.name.toLowerCase() === n) || null;
 }
 
 function entryNames() {
   return USERS.filter((u) => u.role === 'entry').map((u) => u.name);
+}
+
+async function register(name, pin) {
+  const cleanName = normalizeName(name);
+  if (cleanName.length < NAME_MIN || cleanName.length > NAME_MAX) {
+    return { error: `Name must be ${NAME_MIN}–${NAME_MAX} characters.`, status: 400 };
+  }
+  if (!PIN_RE.test(String(pin || ''))) {
+    return { error: 'PIN must be exactly 4 digits.', status: 400 };
+  }
+  if (findUser(cleanName)) {
+    return { error: 'That name is already taken. Choose another or sign in.', status: 409 };
+  }
+  const pinHash = await bcrypt.hash(String(pin), 10);
+  const user = { name: cleanName, role: 'entry', pinHash };
+  USERS = [...USERS, user];
+  saveUsers(USERS);
+  return { user: { name: user.name, role: user.role } };
+}
+
+function removeUser(targetName, actor) {
+  const target = findUser(targetName);
+  if (!target) {
+    return { error: 'User not found.', status: 404 };
+  }
+  if (!actor || !actor.name) {
+    return { error: 'Login required', status: 401 };
+  }
+  const isSelf = target.name.toLowerCase() === String(actor.name).toLowerCase();
+  const actorIsViewer = actor.role === 'viewer';
+  if (!isSelf && !actorIsViewer) {
+    return { error: 'Only managers can remove other accounts.', status: 403 };
+  }
+  if (!isSelf && target.role === 'viewer') {
+    return { error: 'Manager accounts cannot be removed this way.', status: 403 };
+  }
+  if (isSelf && target.role === 'viewer') {
+    const viewersLeft = USERS.filter((u) => u.role === 'viewer' && u.name !== target.name);
+    if (!viewersLeft.length) {
+      return { error: 'Cannot remove the last manager account.', status: 400 };
+    }
+  }
+  USERS = USERS.filter((u) => u.name.toLowerCase() !== target.name.toLowerCase());
+  saveUsers(USERS);
+  return { ok: true, name: target.name };
 }
 
 function parseCookies(req) {
@@ -190,6 +278,8 @@ function requireEntry(req, res, next) {
 module.exports = {
   publicUsers,
   entryNames,
+  register,
+  removeUser,
   login,
   createSession,
   readSession,

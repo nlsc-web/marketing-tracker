@@ -1,4 +1,4 @@
-const CACHE_NAME = 'md-tracker-v5';
+const CACHE_NAME = 'md-tracker-v7';
 const ASSETS = [
   '/',
   '/index.html',

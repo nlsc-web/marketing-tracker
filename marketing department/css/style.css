@@ -730,6 +730,38 @@ canvas{max-width:100%;}
 .login-card .card-heading{margin-bottom:2px;}
 .login-card .card-desc{margin-bottom:18px;}
 .login-card{text-align:left;}
+.account-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 0;
+  border-bottom:1px solid var(--line, rgba(0,0,0,.08));
+}
+.account-row:last-child{border-bottom:none;}
+.account-name{
+  font-weight:600;
+  font-size:0.95rem;
+}
+.login-switch{
+  margin:14px 0 0;
+  font-size:0.875rem;
+  color:var(--muted, #6b6b6b);
+  text-align:center;
+}
+button.linkish{
+  background:none;
+  border:none;
+  padding:0;
+  margin:0;
+  color:var(--gold, #c9a227);
+  font:inherit;
+  font-weight:600;
+  cursor:pointer;
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+button.linkish:hover{color:#a8881a;}
 
 /* Desktop */
 @media(min-width:901px){

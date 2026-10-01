@@ -25,7 +25,8 @@
       <h1>Marketing Department</h1>
       <p class="sub">Daily Numbers Tracker for the Team</p>
     </div>
-    <div class="card login-card">
+
+    <div class="card login-card" id="signInCard">
       <p class="card-heading">Sign In</p>
       <p class="card-desc">Select Your Name and Enter Your PIN to Continue.</p>
       <div class="field">
@@ -39,7 +40,28 @@
         <input type="password" id="loginPin" inputmode="numeric" maxlength="4" autocomplete="current-password">
       </div>
       <button class="primary" id="loginBtn">Log In</button>
+      <p class="login-switch">New here? <button type="button" class="linkish" id="showRegisterBtn">Create account</button></p>
       <div class="msg err" id="loginMsg" style="display:none;">Wrong PIN. Try again.</div>
+    </div>
+
+    <div class="card login-card" id="registerCard" style="display:none;">
+      <p class="card-heading">Create Account</p>
+      <p class="card-desc">Enter your name and a 4-digit PIN. You can log in right after.</p>
+      <div class="field">
+        <label for="regName">Name</label>
+        <input type="text" id="regName" maxlength="40" autocomplete="username" placeholder="Your name">
+      </div>
+      <div class="field">
+        <label for="regPin">PIN (4 digits)</label>
+        <input type="password" id="regPin" inputmode="numeric" maxlength="4" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label for="regPin2">Confirm PIN</label>
+        <input type="password" id="regPin2" inputmode="numeric" maxlength="4" autocomplete="new-password">
+      </div>
+      <button class="primary" id="registerBtn">Create Account</button>
+      <p class="login-switch">Already have an account? <button type="button" class="linkish" id="showSignInBtn">Sign in</button></p>
+      <div class="msg err" id="registerMsg" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -60,6 +82,7 @@
         <span class="user-avatar" id="userAvatar" aria-hidden="true"></span>
         <span class="whoami">Logged in as <b id="whoamiName"></b></span>
       </div>
+      <button class="ghost" id="deleteAccountBtn" type="button">Delete my account</button>
       <button class="ghost" id="logoutBtn">Log Out</button>
     </div>
   </header>
@@ -99,6 +122,8 @@
             <option>BO Form</option>
             <option>Vacancies</option>
             <option>Form 15</option>
+
+            
             <option>Bags</option>
           </select>
         </div>
@@ -128,6 +153,12 @@
         <button class="ghost" id="cancelEditBtn" style="display:none;">Cancel edit</button>
       </div>
       <div class="msg ok" id="saveMsg">Entry Saved.</div>
+    </div>
+
+    <div class="card" id="accountsCard" style="display:none;">
+      <p class="section-title">Accounts</p>
+      <p class="card-desc" style="margin-top:-4px;margin-bottom:12px;">Remove names that no longer use the app. They will disappear from the login list.</p>
+      <div id="accountsList"><div class="empty">Loading...</div></div>
     </div>
 
     <div class="card" id="teamDetailsCard">
