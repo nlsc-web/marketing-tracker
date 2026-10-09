@@ -108,24 +108,13 @@
         </div>
         <div class="field">
           <label for="dept">NLSC / COMPANY</label>
-          <select id="dept">
-            <option>Accounts Course</option>
-            <option>Accounts Theory</option>
-            <option>Accounts Practical</option>
-            <option>Tax 1day Workshop</option>
-            <option>HR 5days Workshop</option>
-            <option>PT & CT 7days Programme</option>
-            <option>HR & Payroll</option>
-            <option>HR 1day Workshop</option>
-            <option>Entrepreneurship Event</option>
-            <option>Company Registration</option>
-            <option>BO Form</option>
-            <option>Vacancies</option>
-            <option>Form 15</option>
-
-            
-            <option>Bags</option>
-          </select>
+          <select id="dept"></select>
+          <div class="dept-add" id="deptAddRow" hidden>
+            <input type="text" id="newDeptName" maxlength="60" placeholder="New option name" autocomplete="off">
+            <button type="button" class="primary" id="addDeptBtn">Add</button>
+            <button type="button" class="ghost" id="cancelDeptBtn">Cancel</button>
+          </div>
+          <div class="msg err" id="deptMsg" style="display:none;"></div>
         </div>
       </div>
       <div class="field">

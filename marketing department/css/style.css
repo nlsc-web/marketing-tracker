@@ -265,6 +265,24 @@ select:disabled{
 .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
 .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
 .field{margin-bottom:14px;}
+.dept-add{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:10px;
+  align-items:center;
+}
+.dept-add input{
+  flex:1 1 160px;
+  min-width:0;
+}
+.dept-add .primary,
+.dept-add .ghost{
+  width:auto;
+  min-height:42px;
+  padding:10px 14px;
+  flex:0 0 auto;
+}
 
 .form-actions{
   display:flex;

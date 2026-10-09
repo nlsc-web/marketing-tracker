@@ -11,7 +11,7 @@ const FALLBACK_USERS = [
   { name: 'Minoshi', role: 'entry' },
   { name: 'Dilrukshi', role: 'entry' }
 ];
-const DEPTS = [
+const FALLBACK_DEPTS = [
   'Accounts Course',
   'Accounts Theory',
   'Accounts Practical',
@@ -27,6 +27,8 @@ const DEPTS = [
   'Form 15',
   'Bags'
 ];
+let DEPTS = FALLBACK_DEPTS.slice();
+const ADD_DEPT_VALUE = '__add_new__';
 
 let currentUser = '';
 let currentRole = '';
@@ -34,6 +36,7 @@ let editingId = null;
 let editingCoordinator = '';
 let callMetricsChart, resultsChart, coordChart, deptChart;
 let personCharts = {};
+let lastDeptBeforeAdd = '';
 
 const pieColors = [
   '#a8881a',
@@ -76,9 +79,13 @@ const DEPT_COLORS = {
   'Form 6': '#22d3ee',               /* light cyan */
   'Form 3': '#78716c'                /* stone */
 };
+const EXTRA_DEPT_COLORS = [
+  '#0ea5e9', '#84cc16', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#14b8a6', '#ec4899', '#6366f1', '#22c55e', '#d97706'
+];
 
 function colorsForDepts(labels){
-  return labels.map(name => DEPT_COLORS[name] || '#9ca3af');
+  return labels.map((name, i) => DEPT_COLORS[name] || EXTRA_DEPT_COLORS[i % EXTRA_DEPT_COLORS.length] || '#9ca3af');
 }
 
 function isViewer(){
@@ -117,6 +124,64 @@ function applyUsers(list){
   ENTRY_COORDS = users.filter(u => u.role === 'entry').map(u => u.name);
   fillSelect('loginCoord', COORDS, true);
   fillSelect('coord', ENTRY_COORDS, false);
+}
+
+function applyDepartments(list, selectName){
+  DEPTS = Array.isArray(list) && list.length ? list.slice() : FALLBACK_DEPTS.slice();
+  fillDeptSelect(selectName);
+}
+
+function fillDeptSelect(selectName){
+  const sel = document.getElementById('dept');
+  if(!sel) return;
+  const keep = selectName && DEPTS.includes(selectName) ? selectName : (sel.value && DEPTS.includes(sel.value) ? sel.value : DEPTS[0]);
+  sel.innerHTML = '';
+  DEPTS.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = v;
+    sel.appendChild(o);
+  });
+  const addOpt = document.createElement('option');
+  addOpt.value = ADD_DEPT_VALUE;
+  addOpt.textContent = '+ Add new option…';
+  sel.appendChild(addOpt);
+  sel.value = keep || DEPTS[0];
+  hideDeptAddRow();
+}
+
+function showDeptAddRow(){
+  const row = document.getElementById('deptAddRow');
+  const msg = document.getElementById('deptMsg');
+  if(row) row.hidden = false;
+  if(msg) msg.style.display = 'none';
+  const input = document.getElementById('newDeptName');
+  if(input){
+    input.value = '';
+    input.focus();
+  }
+}
+
+function hideDeptAddRow(){
+  const row = document.getElementById('deptAddRow');
+  const msg = document.getElementById('deptMsg');
+  if(row) row.hidden = true;
+  if(msg) msg.style.display = 'none';
+  const input = document.getElementById('newDeptName');
+  if(input) input.value = '';
+}
+
+async function loadDepartments(selectName){
+  try{
+    const res = await apiFetch('/api/departments');
+    if(res.ok){
+      applyDepartments(await res.json(), selectName);
+      return;
+    }
+  }catch(e){
+    console.error(e);
+  }
+  applyDepartments(FALLBACK_DEPTS, selectName);
 }
 
 function applyRoleUI(){
@@ -225,12 +290,14 @@ function showApp(){
 
 async function restoreSession(){
   applyUsers(FALLBACK_USERS);
+  applyDepartments(FALLBACK_DEPTS);
   try{
     const usersRes = await apiFetch('/api/users');
     if(usersRes.ok) applyUsers(await usersRes.json());
   }catch(e){
     console.error(e);
   }
+  await loadDepartments();
   try{
     const meRes = await apiFetch('/api/me');
     if(!meRes.ok) return;
@@ -244,6 +311,60 @@ async function restoreSession(){
 }
 
 restoreSession();
+
+document.getElementById('dept').addEventListener('change', ()=>{
+  const sel = document.getElementById('dept');
+  if(sel.value === ADD_DEPT_VALUE){
+    lastDeptBeforeAdd = DEPTS[0] || '';
+    showDeptAddRow();
+    return;
+  }
+  lastDeptBeforeAdd = sel.value;
+  hideDeptAddRow();
+});
+
+document.getElementById('cancelDeptBtn').addEventListener('click', ()=>{
+  const sel = document.getElementById('dept');
+  sel.value = lastDeptBeforeAdd && DEPTS.includes(lastDeptBeforeAdd) ? lastDeptBeforeAdd : DEPTS[0];
+  hideDeptAddRow();
+});
+
+document.getElementById('addDeptBtn').addEventListener('click', async ()=>{
+  const input = document.getElementById('newDeptName');
+  const msg = document.getElementById('deptMsg');
+  const name = (input.value || '').trim();
+  if(!name){
+    msg.textContent = 'Enter a name for the new option.';
+    msg.style.display = 'block';
+    return;
+  }
+  try{
+    const res = await apiFetch('/api/departments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      msg.textContent = data.error || 'Could not add option.';
+      msg.style.display = 'block';
+      return;
+    }
+    applyDepartments(data.departments || DEPTS, data.name);
+    lastDeptBeforeAdd = data.name;
+  }catch(e){
+    console.error(e);
+    msg.textContent = 'Could not add option. Is the server running?';
+    msg.style.display = 'block';
+  }
+});
+
+document.getElementById('newDeptName').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    document.getElementById('addDeptBtn').click();
+  }
+});
 
 function showSignIn(){
   document.getElementById('signInCard').style.display = '';
@@ -411,7 +532,7 @@ function resetForm(){
   document.getElementById('cancelEditBtn').style.display = 'none';
   document.getElementById('submitBtn').textContent = 'Save Entry';
   document.getElementById('entryDate').value = new Date().toISOString().slice(0,10);
-  document.getElementById('dept').selectedIndex = 0;
+  fillDeptSelect(DEPTS[0]);
   document.getElementById('coord').value = currentUser;
   ['f_leads','f_answer','f_na','f_pickup','f_payments','f_sure','f_followup','f_rejected'].forEach(id=>document.getElementById(id).value=0);
 }
@@ -425,12 +546,17 @@ async function saveEntry(){
     alert('View-only accounts cannot save entries.');
     return;
   }
+  const department = document.getElementById('dept').value;
+  if(!department || department === ADD_DEPT_VALUE){
+    alert('Please select or add an NLSC / COMPANY option first.');
+    return;
+  }
   const id = editingId || ('e' + Date.now() + Math.random().toString(36).slice(2,7));
   const entry = {
     id: id,
     date: document.getElementById('entryDate').value,
     coordinator: editingCoordinator || currentUser,
-    department: document.getElementById('dept').value,
+    department,
     leads: Number(document.getElementById('f_leads').value)||0,
     answer: Number(document.getElementById('f_answer').value)||0,
     na: Number(document.getElementById('f_na').value)||0,
@@ -481,7 +607,12 @@ function editEntry(e){
   document.getElementById('submitBtn').textContent = 'Update entry';
   document.getElementById('coord').value = editingCoordinator;
   document.getElementById('entryDate').value = e.date || '';
-  document.getElementById('dept').value = e.department || DEPTS[0];
+  const deptName = e.department || DEPTS[0];
+  if(deptName && !DEPTS.includes(deptName)){
+    applyDepartments([...DEPTS, deptName], deptName);
+  }else{
+    fillDeptSelect(deptName);
+  }
   document.getElementById('f_leads').value = e.leads || 0;
   document.getElementById('f_answer').value = e.answer || 0;
   document.getElementById('f_na').value = e.na || 0;

@@ -3,6 +3,7 @@ data/entries.json
 data/tracker.db
 data/.session-secret
 data/users.json
+data/departments.json
 # seed-entries.json is committed so production can bootstrap once
 .DS_Store
 .env

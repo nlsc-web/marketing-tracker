@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const db = require('./db');
 const auth = require('./auth');
+const departments = require('./departments');
 
 const app = express();
 const PORT = process.env.PORT || 5500;
@@ -88,6 +89,25 @@ app.post('/api/login', asyncHandler(async (req, res) => {
 app.post('/api/logout', (req, res) => {
   res.setHeader('Set-Cookie', auth.clearCookieHeader());
   res.json({ ok: true });
+});
+
+app.get('/api/departments', (req, res) => {
+  res.json(departments.list());
+});
+
+app.post('/api/departments', auth.requireAuth, auth.requireEntry, (req, res) => {
+  const name = String((req.body || {}).name || '').trim();
+  if (!name) {
+    return res.status(400).json({ error: 'Name is required' });
+  }
+  const result = departments.add(name);
+  if (result.error && result.status !== 409) {
+    return res.status(result.status || 400).json({ error: result.error });
+  }
+  if (result.error && result.status === 409) {
+    return res.status(200).json({ name: result.name, departments: departments.list(), existed: true });
+  }
+  res.status(201).json({ name: result.name, departments: result.departments });
 });
 
 app.get('/api/entries', auth.requireAuth, asyncHandler(async (req, res) => {
